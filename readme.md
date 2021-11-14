@@ -35,12 +35,13 @@ public void EventExample(int SelectedTabIndex)
 
 ### Documentation
 What's that? (how do i even write documentation anyway)
+* Create tab using GameObject>UI>TabSystem
+* Just play with the 'TabAmount' and use the
+'CurrentReferenceTabIndex' variable for which tab to instantiate from.
 
 ### FAQ
-Q: I found a bug!
-A: Please open issue (with enough reproduction detail) thank
+* Q: I found a bug!
+* A: Please open issue (with enough reproduction detail) thank
 
-Q: I made your bad code better
-A: Ok open merge request i will (probably not look) definetly look
-
-Q:
+* Q: I made your bad code better
+* A: Ok open merge request i will (probably not look) definetly look
