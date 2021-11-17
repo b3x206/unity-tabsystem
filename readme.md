@@ -1,15 +1,16 @@
 # Unity Tab System
+[![CodeFactor](https://www.codefactor.io/repository/github/b3x206/unity-tabsystem/badge)](https://www.codefactor.io/repository/github/b3x206/unity-tabsystem)
 Use this tab system to easily create tabs in your UI.
 
-### Notes :
+## Notes :
 Before usage, make sure to import TextMeshPro text.
 ![How To Import](img/import-tmp.jpg?raw=true, "Import TMP")
 
-### Preview :
+## Preview :
 ![Scene](img/preview.jpg?raw=true "How it look (with customize)")
 ![Scene](img/previewAnim.gif?raw=true "Toggling menus")
 
-### Code :
+## Code :
 ```C#
 // Reference to the tab system.
 public TabSystem tabSystem;
@@ -33,13 +34,13 @@ public void EventExample(int SelectedTabIndex)
 }
 ```
 
-### Documentation
+## Documentation :
 What's that? (how do i even write documentation anyway)
 * Create tab using GameObject>UI>TabSystem
 * Just play with the 'TabAmount' and use the
 'CurrentReferenceTabIndex' variable for which tab to instantiate from.
 
-### FAQ
+## FAQ :
 * Q: I found a bug!
 * A: Please open issue (with enough reproduction detail) thank
 
