@@ -1,3 +1,5 @@
+# NOTICE : This repo is deprecated, the same addition is included in [here.](https://github.com/b3x206/bxfw-unity)
+
 # Unity Tab System
 [![CodeFactor](https://www.codefactor.io/repository/github/b3x206/unity-tabsystem/badge)](https://www.codefactor.io/repository/github/b3x206/unity-tabsystem)
 Use this tab system to easily create tabs in your UI.
