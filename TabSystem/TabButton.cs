@@ -4,170 +4,341 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using TMPro;
 
+using System;
 using System.Collections;
-using System.Runtime.CompilerServices;
 
-/// TODO : Make this class extend from <see cref="Selectable"/> for proper unity ui support.
-/// However this is optional due to 'Selectable' introducting it's own bloat.
 [RequireComponent(typeof(Image))]
-public class TabButton : MonoBehaviour, 
+public class TabButton : MonoBehaviour,
     IPointerClickHandler, IPointerDownHandler, IPointerEnterHandler, IPointerExitHandler
 {
-    [System.Serializable]
+    [Serializable]
     public class TabButtonUnityEvent : UnityEvent<Image, TabButton> { }
 
-    /////// Private
-    protected Image ButtonImage;
+    // primary type
+    public FadeType FadeType { get { return parentTabSystem.ButtonFadeType; } }
+
+    private Image buttonBackgroundImage;
+    public Image ButtonBackgroundImage
+    {
+        get
+        {
+            if (buttonBackgroundImage == null)
+                buttonBackgroundImage = GetComponent<Image>();
+
+            return buttonBackgroundImage;
+        }
+    }
     // color fade
     public Color PrevColor { get; private set; }
+    public Color DisableColor { get { return parentTabSystem.FadeColorTargetDisabled; } }
+    public Color HoverColor { get { return parentTabSystem.FadeColorTargetHover; } }
     // sprite swap
     private Sprite PrevSprite;
-    // script accessing.
-    [HideInInspector] public TabSystem ParentTabSystem;
 
-    public FadeType FadeType { get; set; } = FadeType.ColorFade;
+    [Header(":: Tab Button Content")]
+    [Tooltip("Content of this button. Every button has unique content.\n" +
+        "Set this to update the image & icon.")]
+    [SerializeField] private string buttonText;
+    [SerializeField] private Sprite buttonSprite;
+    /// <summary>
+    /// Mostly editor only, receive content (<see cref="buttonText"/> and <see cref="buttonSprite"/>) from the added button components.
+    /// </summary>
+    [SerializeField] private bool receiveContentFromComponents;
 
-    [HideInInspector] public int ButtonIndex = 0;
-    [HideInInspector] public TextMeshProUGUI ButtonText;
-
-    private void Awake()
+    public string ButtonText
     {
-        if (ParentTabSystem == null)
+        get { return buttonText; }
+        set
         {
-            Debug.LogError("[TabButton] The parent tab system is null.");
+            buttonText = value;
+            GenerateButtonContent();
+        }
+    }
+    public Sprite ButtonSprite
+    {
+        get { return buttonSprite; }
+        set
+        {
+            buttonSprite = value;
+            GenerateButtonContent();
+        }
+    }
+
+    [SerializeField] private bool mInteractable = true;
+    /// <summary>
+    /// Whether if this button is interactable.
+    /// <br>Note : The parent tab system's interactability overrides this buttons.</br>
+    /// </summary>
+    public bool Interactable
+    {
+        get { return parentTabSystem.Interactable && mInteractable; }
+        set { mInteractable = value; }
+    }
+
+    [Header(":: Tab Button Reference")]
+    [SerializeField] private TMP_Text buttonTMPText;
+    [SerializeField] private Image buttonImage;
+    public TMP_Text ButtonTMPText { get { return buttonTMPText; } internal set { buttonTMPText = value; } }
+    public Image ButtonImage { get { return buttonImage; } internal set { buttonImage = value; } }
+
+    [Header(":: Internal Reference (don't touch this unless necessary)")]
+    [SerializeField, HideInInspector] private TabSystem parentTabSystem;
+    public int ButtonIndex { get { return transform.GetSiblingIndex(); } }
+    public TabSystem ParentTabSystem { get { return parentTabSystem; } }
+
+    // -- Initilaze
+    public bool IsInit => parentTabSystem != null;
+    public void Initilaze(TabSystem parent)
+    {
+        if (IsInit)
             return;
+
+        parentTabSystem = parent;
+    }
+    private void Start()
+    {
+        if (parentTabSystem == null)
+        {
+            Debug.LogWarning(string.Format("[TabButton (name -> '{0}')] The parent tab system is null. Will try to get it.", name));
+            var parentTab = GetComponentInParent<TabSystem>();
+
+            if (parentTab == null)
+            {
+                Debug.LogWarning(string.Format("[TabButton (name -> '{0}')] The parent tab system is null. Failed to get component.", name));
+                return;
+            }
+
+            parentTabSystem = parentTab;
         }
 
         // Set Colors
-        ButtonImage = GetComponent<Image>();
-        PrevColor = ButtonImage.color;
+        PrevColor = ButtonBackgroundImage.color;
 
         // Set Images
-        PrevSprite = ButtonImage.sprite ?? null;
+        PrevSprite = ButtonBackgroundImage.sprite;
 
-        // If first object.
+        // If selected object.
         if (ButtonIndex == 0)
         {
-            ParentTabSystem.CurrentSelectedTab = this;
+            parentTabSystem.CurrentSelectedTab = this;
 
             // Set visuals.
-            SelectButtonAppearance();
+            SetButtonAppearance(ButtonState.Click);
         }
+    }
+
+    /// <summary>
+    /// <br>Generates content from <see cref="buttonContent"/>.</br>
+    /// </summary>
+    /// <param name="onValidateCall">
+    /// This parameter specifies whether if this method was called from an 'OnValidate' method.
+    /// <br>Do not touch this unless you are calling this from 'OnValidate' (Changes <see cref="Debug.Log"/> behaviour)</br>
+    /// </param>
+    internal void GenerateButtonContent(bool onValidateCall = false)
+    {
+        if (ButtonText != null)
+        {
+            // Apply content if we have content
+            if (!string.IsNullOrWhiteSpace(ButtonText))
+            {
+                ButtonTMPText.SetText(ButtonText);
+                ButtonTMPText.gameObject.SetActive(true);
+            }
+            // Receive content if the 'image or sprite' does exist (& our content is null)
+            else if (!string.IsNullOrWhiteSpace(ButtonTMPText.text) && receiveContentFromComponents)
+            {
+                ButtonText = ButtonTMPText.text;
+                ButtonTMPText.gameObject.SetActive(true);
+            }
+            // No content, bail out
+            else
+            {
+                ButtonTMPText.gameObject.SetActive(false);
+            }
+        }
+        else if (Application.isPlaying && !onValidateCall && !string.IsNullOrWhiteSpace(ButtonTMPText.text))
+        {
+            // Print only if tried to set content
+            Debug.LogWarning(string.Format("[TabButton::GenerateButtonContent] ButtonTMPText field in button \"{0}\" is null.", name));
+        }
+
+        if (ButtonImage != null)
+        {
+            if (ButtonSprite != null)
+            {
+                ButtonImage.sprite = ButtonSprite;
+                ButtonImage.gameObject.SetActive(true);
+            }
+            else if (ButtonImage.sprite != null && receiveContentFromComponents)
+            {
+                ButtonSprite = ButtonImage.sprite;
+                ButtonImage.gameObject.SetActive(true);
+            }
+            else
+            {
+                ButtonImage.gameObject.SetActive(false);
+            }
+        }
+        else if (Application.isPlaying && !onValidateCall && ButtonSprite != null)
+        {
+            Debug.LogWarning(string.Format("[TabButton::GenerateButtonContent] ButtonImage field in button \"{0}\" is null.", name));
+        }
+    }
+    private void OnValidate()
+    {
+        GenerateButtonContent(true);
     }
 
     #region PointerClick Events
     // -- Invoke the actual click here.
     public void OnPointerClick(PointerEventData eventData)
     {
-        ParentTabSystem.OnTabButtonsClicked?.Invoke(transform.GetSiblingIndex());
+        if (!Interactable)
+            return;
 
-        ParentTabSystem.CurrentSelectedTab = this;
-        ParentTabSystem.CheckUnClickedButtons();
+        parentTabSystem.OnTabButtonsClicked?.Invoke(transform.GetSiblingIndex());
+
+        parentTabSystem.CurrentSelectedTab = this;
+        parentTabSystem.UpdateButtonAppearances();
     }
 
     // -- Visual Updates
     public void OnPointerDown(PointerEventData eventData)
     {
-        if (ParentTabSystem.CurrentSelectedTab != this)
+        if (!Interactable)
+            return;
+
+        if (parentTabSystem.CurrentSelectedTab != this)
         {
-            switch (FadeType)
-            {
-                case FadeType.ColorFade:
-                    StartCoroutine(DoColorFade(ParentTabSystem.TabButtonFadeColorTargetClick, ParentTabSystem.TabButtonFadeSpeed));
-                    break;
-                case FadeType.SpriteSwap:
-                    ButtonImage.sprite = ParentTabSystem.TargetSpriteToSwap;
-                    break;
-                case FadeType.CustomUnityEvent:
-                    ParentTabSystem.TabButtonCustomEventClick?.Invoke(ButtonImage, this);
-                    break;
-            }
+            SetButtonAppearance(ButtonState.Click);
         }
     }
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (ParentTabSystem.CurrentSelectedTab != this)
+        if (!Interactable)
+            return;
+
+        if (parentTabSystem.CurrentSelectedTab != this)
         {
-            switch (FadeType)
-            {
-                case FadeType.ColorFade:
-                    StartCoroutine(DoColorFade(ParentTabSystem.TabButtonFadeColorTargetHover, ParentTabSystem.TabButtonFadeSpeed));
-                    break;
-                case FadeType.SpriteSwap:
-                    ButtonImage.sprite = ParentTabSystem.HoverSpriteToSwap;
-                    break;
-                case FadeType.CustomUnityEvent:
-                    ParentTabSystem.TabButtonCustomEventHover?.Invoke(ButtonImage, this);
-                    break;
-            }
-        }       
+            SetButtonAppearance(ButtonState.Hover);
+        }
     }
     public void OnPointerExit(PointerEventData eventData)
     {
-        if (ParentTabSystem.CurrentSelectedTab != this)
+        if (!Interactable)
+            return;
+
+        if (parentTabSystem.CurrentSelectedTab != this)
         {
-            switch (FadeType)
-            {
-                case FadeType.ColorFade:
-                    StartCoroutine(DoColorFade(PrevColor, ParentTabSystem.TabButtonFadeSpeed));
-                    break;
-                case FadeType.SpriteSwap:
-                    if (PrevSprite != null) { ButtonImage.sprite = PrevSprite; }
-                    else { ButtonImage.sprite = null; }
-                    break;
-                case FadeType.CustomUnityEvent:
-                    ParentTabSystem.TabButtonCustomEventOnReset?.Invoke(ButtonImage, this);
-                    break;
-            }
+            SetButtonAppearance(ButtonState.Reset);
+        }
+        else // ParentTabSystem.CurrentSelectedTab == this
+        {
+            SetButtonAppearance(ButtonState.Click);
         }
     }
-    // -- Visual Update Methods
-    public void ResetButtonAppearance()
+
+    internal enum ButtonState { Reset, Hover, Click, Disable }
+
+    internal void SetButtonAppearance(ButtonState state)
     {
-        switch (FadeType)
+        switch (state)
         {
-            case FadeType.ColorFade:
-                StartCoroutine(DoColorFade(PrevColor, ParentTabSystem.TabButtonFadeSpeed));
+            case ButtonState.Reset:
+                switch (FadeType)
+                {
+                    case FadeType.ColorFade:
+                        TweenColorFade(parentTabSystem.FadeColorTargetDefault, parentTabSystem.FadeSpeed);
+                        break;
+                    case FadeType.SpriteSwap:
+                        if (PrevSprite != null) { ButtonBackgroundImage.sprite = parentTabSystem.DefaultSpriteToSwap; }
+                        else { ButtonBackgroundImage.sprite = null; }
+                        break;
+                    case FadeType.CustomUnityEvent:
+                        parentTabSystem.ButtonCustomEventOnReset?.Invoke(ButtonBackgroundImage, this);
+                        break;
+                }
                 break;
-            case FadeType.SpriteSwap:
-                if (PrevSprite != null) { ButtonImage.sprite = PrevSprite; }
-                else { ButtonImage.sprite = null; }
+            case ButtonState.Hover:
+                switch (FadeType)
+                {
+                    case FadeType.ColorFade:
+                        TweenColorFade(parentTabSystem.FadeColorTargetHover, parentTabSystem.FadeSpeed);
+                        break;
+                    case FadeType.SpriteSwap:
+                        ButtonBackgroundImage.sprite = parentTabSystem.HoverSpriteToSwap;
+                        break;
+                    case FadeType.CustomUnityEvent:
+                        parentTabSystem.ButtonCustomEventOnHover?.Invoke(ButtonBackgroundImage, this);
+                        break;
+                }
                 break;
-            case FadeType.CustomUnityEvent:
-                ParentTabSystem.TabButtonCustomEventOnReset?.Invoke(ButtonImage, this);
+            case ButtonState.Click:
+                switch (FadeType)
+                {
+                    case FadeType.ColorFade:
+                        TweenColorFade(parentTabSystem.FadeColorTargetClick, parentTabSystem.FadeSpeed);
+                        break;
+                    case FadeType.SpriteSwap:
+                        ButtonBackgroundImage.sprite = parentTabSystem.TargetSpriteToSwap;
+                        break;
+                    case FadeType.CustomUnityEvent:
+                        parentTabSystem.ButtonCustomEventOnClick?.Invoke(ButtonBackgroundImage, this);
+                        break;
+                }
                 break;
-        }
-    }
-    public void SelectButtonAppearance()
-    {
-        // Set visuals.
-        switch (FadeType)
-        {
-            case FadeType.ColorFade:
-                StartCoroutine(DoColorFade(ParentTabSystem.TabButtonFadeColorTargetClick, ParentTabSystem.TabButtonFadeSpeed));
+            case ButtonState.Disable:
+                switch (FadeType)
+                {
+                    case FadeType.ColorFade:
+                        TweenColorFade(DisableColor, parentTabSystem.FadeSpeed);
+                        break;
+                    case FadeType.SpriteSwap:
+                        if (PrevSprite != null) { ButtonBackgroundImage.sprite = parentTabSystem.DisabledSpriteToSwap; }
+                        else { ButtonBackgroundImage.sprite = null; }
+                        break;
+                    case FadeType.CustomUnityEvent:
+                        parentTabSystem.ButtonCustomEventOnDisable?.Invoke(ButtonBackgroundImage, this);
+                        break;
+                }
                 break;
-            case FadeType.SpriteSwap:
-                ButtonImage.sprite = ParentTabSystem.TargetSpriteToSwap;
-                break;
-            case FadeType.CustomUnityEvent:
-                ParentTabSystem.TabButtonCustomEventClick?.Invoke(ButtonImage, this);
-                break;
+
+            default:
+                // Reset if no state was assigned.
+                Debug.LogWarning($"[TabButton::SetButtonAppearance] No behaviour defined for state : \"{state}\". Reseting instead.");
+                goto case ButtonState.Reset;
         }
     }
     #endregion
 
     #region Color Fading
-    private IEnumerator DoColorFade(Color Target, float Duration)
+    private void TweenColorFade(Color Target, float Duration)
+    {
+        if (!gameObject.activeInHierarchy) return; // Do not start coroutines if the object isn't active.
+
+        StartCoroutine(CoroutineTweenColorFade(Target, Duration));
+    }
+    private IEnumerator CoroutineTweenColorFade(Color Target, float Duration)
     {
         // Color manipulation
-        Color CachedPrevColor = ButtonImage.color;
+        Color CurrentPrevColor = ButtonBackgroundImage.color;
         bool TargetIsPrevColor = Target == PrevColor;
 
-        Color ManipulatedTarget = ParentTabSystem.TabButtonSubtractFromCurrentColor ? (TargetIsPrevColor ? Target : CachedPrevColor - Target) : Target;
+        if (parentTabSystem.FadeSubtractFromCurrentColor)
+            Target = TargetIsPrevColor ? Target : CurrentPrevColor - Target;
+        // else, leave it unchanged
+
+        if (!Application.isPlaying)
+        {
+            // Set the color instantly as the 'UnityEditor' doesn't support tween.
+            ButtonBackgroundImage.color = Target;
+
+            yield break;
+        }
 
         if (Duration <= 0f)
         {
-            ButtonImage.color = Target;
+            ButtonBackgroundImage.color = Target;
 
             yield break;
         }
@@ -178,12 +349,12 @@ public class TabButton : MonoBehaviour,
         while (T <= 1.0f)
         {
             T += Time.deltaTime / Duration;
-            ButtonImage.color = Color.Lerp(CachedPrevColor, ManipulatedTarget, Mathf.SmoothStep(0, 1, T));
+            ButtonBackgroundImage.color = Color.Lerp(CurrentPrevColor, Target, Mathf.SmoothStep(0, 1, T));
             yield return null;
         }
-        // Set end value. NOTE : MAKE THIS THE MANIPULATED TARGET NOT THE COLOR VALUE PASSED AS TARGET.
-        // THE REASONING BEHIND THIS IS THE TARGET VALUE CAN BE A SUBTRACT COLOR. (infuriation noises)
-        ButtonImage.color = ManipulatedTarget;
+
+        // Set end value.
+        ButtonBackgroundImage.color = Target;
     }
     #endregion
 }

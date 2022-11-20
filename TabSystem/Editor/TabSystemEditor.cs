@@ -1,10 +1,9 @@
 ﻿using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 using UnityEditor;
+using UnityEngine.UI;
 
 [CustomEditor(typeof(TabSystem))]
-public class TabSystemEditor : Editor
+internal class TabSystemEditor : Editor
 {
     //////////// Object Creation
     [MenuItem("GameObject/UI/Tab System")]
@@ -27,7 +26,7 @@ public class TabSystemEditor : Editor
         TabSystemLayoutGroup.childControlWidth = true;
         TabSystemLayoutGroup.spacing = 10f;
         // Tab Button
-        _ = CreatedTabSystem.CreateTab();
+        CreatedTabSystem.CreateTab();
 
         // Resize stuff accordingly.
         // Width -- Height
@@ -36,7 +35,7 @@ public class TabSystemEditor : Editor
         #endregion
 
         // Set Unity Stuff
-        Undo.RegisterCreatedObjectUndo(TSystem, "Create " + TSystem.name);
+        Undo.RegisterCreatedObjectUndo(TSystem, string.Format("Create {0}", TSystem.name));
         Selection.activeObject = TSystem;
     }
 
@@ -44,11 +43,17 @@ public class TabSystemEditor : Editor
     {
         // Standard
         var Target = (TabSystem)target;
-        var Tso = serializedObject;
+        var tabSO = serializedObject;
+        tabSO.Update();
 
-        Tso.Update();
+        // Draw the 'm_Script' field that monobehaviour makes (with disabled gui)
+        var gEnabled = GUI.enabled;
+        GUI.enabled = false;
+        EditorGUILayout.PropertyField(tabSO.FindProperty("m_Script"));
+        GUI.enabled = gEnabled;
+
         EditorGUI.BeginChangeCheck();
-        
+
         // Setup variables
         EditorGUILayout.LabelField("Standard Settings", EditorStyles.boldLabel);
 
@@ -57,9 +62,14 @@ public class TabSystemEditor : Editor
         if (GUILayout.Button("+", GUILayout.Width(20f))) { TBtnAmount++; }
         if (GUILayout.Button("-", GUILayout.Width(20f))) { TBtnAmount--; }
         GUILayout.EndHorizontal();
+        // Show warning if TabButtonAmount is 0 or lower.
+        if (TBtnAmount <= 0)
+            EditorGUILayout.HelpBox("TabSystem is disabled. To enable it again set TabButtonAmount to 1 or more.", MessageType.Warning);
 
-        EditorGUILayout.PropertyField(Tso.FindProperty(nameof(Target.ButtonFadeType)));
+        EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.ButtonFadeType)));
         var CRefTB = EditorGUILayout.IntField(nameof(Target.CurrentReferenceTabButton), Target.CurrentReferenceTabButton);
+
+        var TInteractable = EditorGUILayout.Toggle("Interactable", Target.Interactable);
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Fade Settings", EditorStyles.boldLabel);
@@ -67,22 +77,29 @@ public class TabSystemEditor : Editor
         switch (Target.ButtonFadeType)
         {
             case FadeType.ColorFade:
-                EditorGUILayout.PropertyField(Tso.FindProperty(nameof(Target.TabButtonFadeSpeed)));
-                EditorGUILayout.PropertyField(Tso.FindProperty(nameof(Target.TabButtonFadeColorTargetHover)));
-                EditorGUILayout.PropertyField(Tso.FindProperty(nameof(Target.TabButtonFadeColorTargetClick)));
-                EditorGUILayout.PropertyField(Tso.FindProperty(nameof(Target.TabButtonSubtractFromCurrentColor)));
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.FadeSpeed)));
+                // Set the default color dynamically on the editor
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.FadeColorTargetDefault)));
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Target.UpdateButtonAppearances();
+                }
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.FadeColorTargetHover)));
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.FadeColorTargetClick)));
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.FadeColorTargetDisabled)));
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.FadeSubtractFromCurrentColor)));
                 break;
             case FadeType.SpriteSwap:
-                EditorGUILayout.LabelField(
-                    "Note : Default sprite is the image that is currently inside the Image component.",
-                    EditorStyles.centeredGreyMiniLabel);
-                EditorGUILayout.PropertyField(Tso.FindProperty(nameof(Target.HoverSpriteToSwap)));
-                EditorGUILayout.PropertyField(Tso.FindProperty(nameof(Target.TargetSpriteToSwap)));
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.DefaultSpriteToSwap)));
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.HoverSpriteToSwap)));
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.TargetSpriteToSwap)));
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.DisabledSpriteToSwap)));
                 break;
             case FadeType.CustomUnityEvent:
-                EditorGUILayout.PropertyField(Tso.FindProperty(nameof(Target.TabButtonCustomEventOnReset)));
-                EditorGUILayout.PropertyField(Tso.FindProperty(nameof(Target.TabButtonCustomEventHover)));
-                EditorGUILayout.PropertyField(Tso.FindProperty(nameof(Target.TabButtonCustomEventClick)));
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.ButtonCustomEventOnReset)));
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.ButtonCustomEventOnHover)));
+                EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.ButtonCustomEventOnClick)));
                 break;
 
             default:
@@ -92,30 +109,35 @@ public class TabSystemEditor : Editor
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Tab Event", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(Tso.FindProperty(nameof(Target.OnTabButtonsClicked)));
+        EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(Target.OnTabButtonsClicked)));
 
         if (EditorGUI.EndChangeCheck())
         {
+            Undo.RecordObject(Target, string.Format("Change variable on TabSystem {0}", Target.name));
+
             // Apply properties
             if (Target.TabButtonAmount != TBtnAmount)
             {
                 Target.TabButtonAmount = TBtnAmount;
             }
+            if (Target.Interactable != TInteractable)
+            {
+                Target.Interactable = TInteractable;
+            }
 
             Target.CurrentReferenceTabButton = CRefTB;
 
             // Apply serializedObject
-            Tso.ApplyModifiedProperties();
-            Undo.RegisterCompleteObjectUndo(Target, $"Change variable on TabSystem {Target.name}");
+            tabSO.ApplyModifiedProperties();
         }
 
         // -- Tab List Actions
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Tab List", EditorStyles.boldLabel);
-        
+
         EditorGUI.indentLevel++; // indentLevel = normal + 1
         GUI.enabled = false;
-        EditorGUILayout.PropertyField(Tso.FindProperty("TabButtons"));
+        EditorGUILayout.PropertyField(tabSO.FindProperty("TabButtons"));
         GUI.enabled = true;
 
         GUILayout.BeginHorizontal();
