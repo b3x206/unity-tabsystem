@@ -16,7 +16,7 @@ public class TabButton : MonoBehaviour,
 
     // primary type
     public FadeType FadeType { get { return parentTabSystem.ButtonFadeType; } }
-
+    // images
     private Image buttonBackgroundImage;
     public Image ButtonBackgroundImage
     {
@@ -28,6 +28,7 @@ public class TabButton : MonoBehaviour,
             return buttonBackgroundImage;
         }
     }
+
     // color fade
     public Color PrevColor { get; private set; }
     public Color DisableColor { get { return parentTabSystem.FadeColorTargetDisabled; } }
@@ -36,9 +37,9 @@ public class TabButton : MonoBehaviour,
     private Sprite PrevSprite;
 
     [Header(":: Tab Button Content")]
-    [Tooltip("Content of this button. Every button has unique content.\n" +
-        "Set this to update the image & icon.")]
-    [SerializeField] private string buttonText;
+    [Tooltip("Text Content of this button.\nSet this to update the text.")]
+    [SerializeField, TextArea] private string buttonText = "Tab Button";
+    [Tooltip("Text Content of this button.\nSet this to update the icon.")]
     [SerializeField] private Sprite buttonSprite;
     /// <summary>
     /// Mostly editor only, receive content (<see cref="buttonText"/> and <see cref="buttonSprite"/>) from the added button components.
@@ -136,7 +137,7 @@ public class TabButton : MonoBehaviour,
     /// </param>
     internal void GenerateButtonContent(bool onValidateCall = false)
     {
-        if (ButtonText != null)
+        if (ButtonTMPText != null)
         {
             // Apply content if we have content
             if (!string.IsNullOrWhiteSpace(ButtonText))
@@ -156,7 +157,7 @@ public class TabButton : MonoBehaviour,
                 ButtonTMPText.gameObject.SetActive(false);
             }
         }
-        else if (Application.isPlaying && !onValidateCall && !string.IsNullOrWhiteSpace(ButtonTMPText.text))
+        else if (Application.isPlaying && !onValidateCall && !string.IsNullOrWhiteSpace(ButtonText))
         {
             // Print only if tried to set content
             Debug.LogWarning(string.Format("[TabButton::GenerateButtonContent] ButtonTMPText field in button \"{0}\" is null.", name));
@@ -238,8 +239,15 @@ public class TabButton : MonoBehaviour,
         }
     }
 
+    /// <summary>
+    /// State of the button to set the appearence into.
+    /// <br>You can get the states of the button using <see cref="TabSystem"/> events.</br>
+    /// </summary>
     internal enum ButtonState { Reset, Hover, Click, Disable }
-
+    /// <summary>
+    /// Sets the button appearence.
+    /// <br>Do not call this method.</br>
+    /// </summary>
     internal void SetButtonAppearance(ButtonState state)
     {
         switch (state)
