@@ -230,7 +230,7 @@ public class TabSystem : UIBehaviour
                     if (Application.isPlaying)
                     {
                         if (tabButtons[i] != null)
-                            Destroy(tabButtons[i].gameObject);
+                            DestroyImmediate(tabButtons[i].gameObject); // Have to use DestroyImmediate here as well, otherwise unity gets stuck.
                         else
                         {
                             // Tab button is null, call CleanTabButtonsList
@@ -294,7 +294,11 @@ public class TabSystem : UIBehaviour
             if (Application.isPlaying)
             {
                 if (tabButtons[tabButtons.Count - 1] != null)
-                    Destroy(tabButtons[tabButtons.Count - 1].gameObject);
+                {
+                    // We need to use DestroyImmediate here as there's no need for the reference
+                    // Otherwise the script gets stuck at an infinite loop and dies.
+                    DestroyImmediate(tabButtons[tabButtons.Count - 1].gameObject);
+                }
                 else
                 {
                     // Tab button is null, call CleanTabButtonsList
@@ -368,7 +372,8 @@ public class TabSystem : UIBehaviour
         // Destroy array.
         foreach (TabButton button in tabButtons)
         {
-            if (button.ButtonIndex == 0 && !clearAll) continue;
+            if (button.ButtonIndex == 0 && !clearAll)
+                continue;
 
             if (Application.isPlaying)
             {
