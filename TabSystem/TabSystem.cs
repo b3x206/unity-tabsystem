@@ -64,7 +64,8 @@ public class TabSystem : UIBehaviour
         }
         set
         {
-            if (_CurrentReferenceTabButton == value) return;
+            if (_CurrentReferenceTabButton == value)
+                return;
 
             _CurrentReferenceTabButton = Mathf.Clamp(value, 0, tabButtons.Count - 1);
         }
