@@ -238,7 +238,7 @@ public class TabSystem : UIBehaviour
                         }
                     }
 #if UNITY_EDITOR
-                    else if (Application.isEditor) // && !isPlaying
+                    else
                     {
                         if (tabButtons[i] != null)
                             UnityEditor.Undo.DestroyObjectImmediate(tabButtons[i].gameObject);
@@ -302,7 +302,7 @@ public class TabSystem : UIBehaviour
                 }
             }
 #if UNITY_EDITOR
-            else if (Application.isEditor) // && !isPlaying
+            else
             {
                 if (tabButtons[tabButtons.Count - 1] != null)
                     UnityEditor.Undo.DestroyObjectImmediate(tabButtons[tabButtons.Count - 1].gameObject);
@@ -341,7 +341,7 @@ public class TabSystem : UIBehaviour
                     Destroy(transform.GetChild(0).gameObject);
                 }
 #if UNITY_EDITOR
-                else if (Application.isEditor) // && !isPlaying
+                else
                 {
                     UnityEditor.Undo.DestroyObjectImmediate(transform.GetChild(0).gameObject);
                 }
@@ -374,7 +374,7 @@ public class TabSystem : UIBehaviour
                 Destroy(button.gameObject);
             }
 #if UNITY_EDITOR
-            else if (Application.isEditor) // && !isPlaying
+            else
             {
                 UnityEditor.Undo.DestroyObjectImmediate(button.gameObject);
             }
