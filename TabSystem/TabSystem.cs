@@ -226,10 +226,6 @@ public class TabSystem : UIBehaviour
                 // Clean the buttons as that's necessary. (otherwise there's stray buttons)
                 for (int i = 1; i < tabButtons.Count; i++)
                 {
-                    if (Application.isEditor)
-                    {
-                        DestroyImmediate(tabButtons[i].gameObject);
-                    }
                     if (Application.isPlaying)
                     {
                         if (tabButtons[i] != null)
@@ -241,6 +237,19 @@ public class TabSystem : UIBehaviour
                             continue;
                         }
                     }
+#if UNITY_EDITOR
+                    else if (Application.isEditor) // && !isPlaying
+                    {
+                        if (tabButtons[i] != null)
+                            UnityEditor.Undo.DestroyObjectImmediate(tabButtons[i].gameObject);
+                        else
+                        {
+                            // Tab button is null, call CleanTabButtonsList
+                            CleanTabButtonsList();
+                            continue;
+                        }
+                    }
+#endif
                 }
 
                 CleanTabButtonsList();
@@ -281,10 +290,6 @@ public class TabSystem : UIBehaviour
         // Normal creation
         while (tabButtons.Count > TabButtonAmount)
         {
-            if (Application.isEditor)
-            {
-                DestroyImmediate(tabButtons[tabButtons.Count - 1].gameObject);
-            }
             if (Application.isPlaying)
             {
                 if (tabButtons[tabButtons.Count - 1] != null)
@@ -296,6 +301,19 @@ public class TabSystem : UIBehaviour
                     continue;
                 }
             }
+#if UNITY_EDITOR
+            else if (Application.isEditor) // && !isPlaying
+            {
+                if (tabButtons[tabButtons.Count - 1] != null)
+                    UnityEditor.Undo.DestroyObjectImmediate(tabButtons[tabButtons.Count - 1].gameObject);
+                else
+                {
+                    // Tab button is null, call CleanTabButtonsList
+                    CleanTabButtonsList();
+                    continue;
+                }
+            }
+#endif
 
             CleanTabButtonsList();
         }
@@ -318,14 +336,16 @@ public class TabSystem : UIBehaviour
             var tChild = transform.childCount;
             for (int i = 0; i < tChild; i++)
             {
-                if (Application.isEditor)
-                {
-                    DestroyImmediate(transform.GetChild(0).gameObject);
-                }
                 if (Application.isPlaying)
                 {
                     Destroy(transform.GetChild(0).gameObject);
                 }
+#if UNITY_EDITOR
+                else if (Application.isEditor) // && !isPlaying
+                {
+                    UnityEditor.Undo.DestroyObjectImmediate(transform.GetChild(0).gameObject);
+                }
+#endif
             }
         }
 
@@ -353,10 +373,12 @@ public class TabSystem : UIBehaviour
             {
                 Destroy(button.gameObject);
             }
+#if UNITY_EDITOR
             else if (Application.isEditor) // && !isPlaying
             {
-                DestroyImmediate(button.gameObject);
+                UnityEditor.Undo.DestroyObjectImmediate(button.gameObject);
             }
+#endif
         }
 
         if (tabButtons.Count > 1)
@@ -370,7 +392,6 @@ public class TabSystem : UIBehaviour
             tabButtons.Clear();
             tabButtons.Add(tempTabBtn);
             tempTabBtn.Initilaze(this);
-            //tempTabBtn.buttonIndex = 0;
         }
 
         if (resetTabBtnAmount)
@@ -445,10 +466,16 @@ public class TabSystem : UIBehaviour
         }
 
         // Init button
-        TabButtonScript.Initilaze(this/*, TabButtons.Count*/);
-        //TabButtonScript.buttonIndex = TabButtons.Count;
-        //TabButtonScript.parentTabSystem = this;
-        TabButtonScript.name = string.Format("{0}_{1}", TabButtonScript.name, tabButtons.Count).Replace("(Clone)", string.Empty);
+        TabButtonScript.Initilaze(this);
+        TabButtonScript.gameObject.name = TabButtonScript.gameObject.name.Replace("(Clone)", string.Empty);
+        int objectNameIndexSplit = TabButtonScript.gameObject.name.LastIndexOf('_');
+        if (objectNameIndexSplit != -1)
+        {
+            // If the previous name was prefixed with an underscore, remove the underscore
+            TabButtonScript.gameObject.name = TabButtonScript.gameObject.name.Substring(0, objectNameIndexSplit);
+        }
+        // Prefix the name with underscore
+        TabButtonScript.gameObject.name = string.Format("{0}_{1}", TabButtonScript.gameObject.name, tabButtons.Count);
 
         tabButtons.Add(TabButtonScript);
         OnCreateTabButton?.Invoke(tabButtons.Count - 1, TabButtonScript);
