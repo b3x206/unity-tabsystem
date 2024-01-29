@@ -16,13 +16,43 @@ internal class TabSystemEditor : Editor
 {
     //////////// Object Creation
     [MenuItem("GameObject/UI/Tab System")]
-    public static void CreateTabSystem(MenuCommand Command)
+    public static void CreateTabSystem(MenuCommand command)
     {
+        Undo.IncrementCurrentGroup();
+        Undo.SetCurrentGroupName("create 'TabSystem'");
+        int undoGroupIndex = Undo.GetCurrentGroup();
+        
         // Create primary gameobject.
         GameObject tabSystem = new GameObject("Tab System");
 
         // Align stuff
-        GameObjectUtility.SetParentAndAlign(tabSystem, (GameObject)Command.context);
+        GameObject parentObject = (GameObject)command.context;
+        if (parentObject == null || parentObject.GetComponentInParent<Canvas>() == null)
+        {
+            // There probably exists a shorthand editor utility for doing this, please let me know if it actually does.
+            // but otherwise this does mostly the same thing as creating a button menu item, requiring an actual canvas
+            Canvas firstCanvas = FindFirstObjectByType<Canvas>();
+            if (firstCanvas != null)
+            {
+                parentObject = firstCanvas.gameObject;
+            }
+            // No canvas exists, create a blank canvas on the scene root.
+            else
+            {
+                parentObject = new GameObject("Canvas");
+                firstCanvas = parentObject.AddComponent<Canvas>();
+                // Required by the tabsystem
+                parentObject.AddComponent<CanvasScaler>();
+                parentObject.AddComponent<GraphicRaycaster>();
+
+                // Setup 'firstCanvas'
+                firstCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+                Undo.RegisterCompleteObjectUndo(parentObject, string.Empty);
+            }
+        }
+
+        GameObjectUtility.SetParentAndAlign(tabSystem, parentObject);
 
         // TabSystem on empty object.
         TabSystem tabSystemScript = tabSystem.AddComponent<TabSystem>();
@@ -40,7 +70,8 @@ internal class TabSystemEditor : Editor
         tabSystemTransform.sizeDelta = new Vector2(200, 100);
 
         // Set Unity Stuff
-        Undo.RegisterCreatedObjectUndo(tabSystem, string.Format("create {0}", tabSystem.name));
+        Undo.RegisterCreatedObjectUndo(tabSystem, string.Empty);
+        Undo.CollapseUndoOperations(undoGroupIndex);
         Selection.activeObject = tabSystem;
     }
 
