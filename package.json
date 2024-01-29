@@ -1,0 +1,16 @@
+{
+    "name": "com.b3x.tabsystem",
+    "version": "1.0.1",
+    "displayName": "UGUI TabSystem",
+    "description": "This addition can be used to easily create tabs (like browser tabs, etc.) on the unity's UGUI system.",
+    "dependencies":
+    {
+        "com.unity.textmeshpro": "3.0.6"
+    },
+    "author":
+    {
+        "name": "Barbaros Bayat",
+        "email": "b3x2088@gmail.com",
+        "url": "https://github.com/b3x206/"
+    }
+}

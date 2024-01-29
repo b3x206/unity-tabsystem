@@ -8,22 +8,33 @@ using System;
 using System.Collections;
 
 [RequireComponent(typeof(Image))]
-public class TabButton : MonoBehaviour,
-    IPointerClickHandler, IPointerDownHandler, IPointerEnterHandler, IPointerExitHandler
+public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandler, IPointerEnterHandler, IPointerExitHandler
 {
+    /// <summary>
+    /// Used with a tab button related transitioning event.
+    /// <br>The <see cref="Image"/> parameter is for the background image of the button and the <see cref="TabButton"/> parameter is for the button itself.</br>
+    /// </summary>
     [Serializable]
     public class TabButtonUnityEvent : UnityEvent<Image, TabButton> { }
 
     // primary type
+    /// <summary>
+    /// Primary fading type used for the parent tab system.
+    /// </summary>
     public FadeType FadeType { get { return parentTabSystem.ButtonFadeType; } }
     // images
     private Image buttonBackgroundImage;
+    /// <summary>
+    /// C
+    /// </summary>
     public Image ButtonBackgroundImage
     {
         get
         {
             if (buttonBackgroundImage == null)
+            {
                 buttonBackgroundImage = GetComponent<Image>();
+            }
 
             return buttonBackgroundImage;
         }
@@ -39,13 +50,10 @@ public class TabButton : MonoBehaviour,
     [Header(":: Tab Button Content")]
     [Tooltip("Text Content of this button.\nSet this to update the text.")]
     [SerializeField, TextArea] private string buttonText = "Tab Button";
-    [Tooltip("Text Content of this button.\nSet this to update the icon.")]
-    [SerializeField] private Sprite buttonSprite;
     /// <summary>
-    /// Mostly editor only, receive content (<see cref="buttonText"/> and <see cref="buttonSprite"/>) from the added button components.
+    /// Text contained inside this tab button.
+    /// <br>Setting this will change the <see cref="ButtonTMPText"/>'s text property value.</br>
     /// </summary>
-    [SerializeField] private bool receiveContentFromComponents;
-
     public string ButtonText
     {
         get { return buttonText; }
@@ -55,6 +63,13 @@ public class TabButton : MonoBehaviour,
             GenerateButtonContent();
         }
     }
+    [Tooltip("Text Content of this button.\nSet this to update the icon.")]
+    [SerializeField] private Sprite buttonSprite;
+    /// <summary>
+    /// Text contained inside this tab button.
+    /// <br>Setting this will change the <see cref="ButtonImage"/>'s sprite property value.</br>
+    /// <br>Note : This does not contain the background sprite. Instead this is an accompanying value.</br>
+    /// </summary>
     public Sprite ButtonSprite
     {
         get { return buttonSprite; }
@@ -64,6 +79,10 @@ public class TabButton : MonoBehaviour,
             GenerateButtonContent();
         }
     }
+    /// <summary>
+    /// Mostly editor only, receive content (<see cref="buttonText"/> and <see cref="buttonSprite"/>) from the added button components.
+    /// </summary>
+    [SerializeField] private bool receiveContentFromComponents;
 
     [SerializeField] private bool mInteractable = true;
     /// <summary>
@@ -84,15 +103,30 @@ public class TabButton : MonoBehaviour,
 
     [Header(":: Internal Reference (don't touch this unless necessary)")]
     [SerializeField, HideInInspector] private TabSystem parentTabSystem;
+    /// <summary>
+    /// Returns the index of this button.
+    /// <br>(note : this may return inaccurate values if there are other children on the parent transform of this button)</br>
+    /// </summary>
     public int ButtonIndex { get { return transform.GetSiblingIndex(); } }
+    /// <summary>
+    /// The parent tab system that this button was initialized with.
+    /// </summary>
     public TabSystem ParentTabSystem { get { return parentTabSystem; } }
 
     // -- Initilaze
+    /// <summary>
+    /// Whether if this button is initialized.
+    /// </summary>
     public bool IsInit => parentTabSystem != null;
+    /// <summary>
+    /// Initializes and sets up the callee button.
+    /// </summary>
     public void Initilaze(TabSystem parent)
     {
         if (IsInit)
+        {
             return;
+        }
 
         parentTabSystem = parent;
     }
@@ -101,7 +135,7 @@ public class TabButton : MonoBehaviour,
         if (parentTabSystem == null)
         {
             Debug.LogWarning(string.Format("[TabButton (name -> '{0}')] The parent tab system is null. Will try to get it.", name));
-            var parentTab = GetComponentInParent<TabSystem>();
+            TabSystem parentTab = GetComponentInParent<TabSystem>();
 
             if (parentTab == null)
             {
@@ -195,7 +229,9 @@ public class TabButton : MonoBehaviour,
     public void OnPointerClick(PointerEventData eventData)
     {
         if (!Interactable)
+        {
             return;
+        }
 
         parentTabSystem.OnTabButtonsClicked?.Invoke(transform.GetSiblingIndex());
 
@@ -207,7 +243,9 @@ public class TabButton : MonoBehaviour,
     public void OnPointerDown(PointerEventData eventData)
     {
         if (!Interactable)
+        {
             return;
+        }
 
         if (parentTabSystem.CurrentSelectedTab != this)
         {
@@ -217,7 +255,9 @@ public class TabButton : MonoBehaviour,
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (!Interactable)
+        {
             return;
+        }
 
         if (parentTabSystem.CurrentSelectedTab != this)
         {
@@ -227,7 +267,9 @@ public class TabButton : MonoBehaviour,
     public void OnPointerExit(PointerEventData eventData)
     {
         if (!Interactable)
+        {
             return;
+        }
 
         if (parentTabSystem.CurrentSelectedTab != this)
         {
@@ -322,7 +364,10 @@ public class TabButton : MonoBehaviour,
     #region Color Fading
     private void TweenColorFade(Color Target, float Duration)
     {
-        if (!gameObject.activeInHierarchy) return; // Do not start coroutines if the object isn't active.
+        if (!gameObject.activeInHierarchy)
+        {
+            return; // Do not start coroutines if the object isn't active.
+        }
 
         StartCoroutine(CoroutineTweenColorFade(Target, Duration));
     }
@@ -333,7 +378,9 @@ public class TabButton : MonoBehaviour,
         bool TargetIsPrevColor = Target == PrevColor;
 
         if (parentTabSystem.FadeSubtractFromCurrentColor)
+        {
             Target = TargetIsPrevColor ? Target : CurrentPrevColor - Target;
+        }
         // else, leave it unchanged
 
         if (!Application.isPlaying)

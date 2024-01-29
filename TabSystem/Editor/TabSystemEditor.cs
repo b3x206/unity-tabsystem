@@ -19,29 +19,29 @@ internal class TabSystemEditor : Editor
     public static void CreateTabSystem(MenuCommand Command)
     {
         // Create primary gameobject.
-        GameObject TSystem = new GameObject("Tab System");
+        GameObject tabSystem = new GameObject("Tab System");
 
         // Align stuff
-        GameObjectUtility.SetParentAndAlign(TSystem, (GameObject)Command.context);
+        GameObjectUtility.SetParentAndAlign(tabSystem, (GameObject)Command.context);
 
         // TabSystem on empty object.
-        TabSystem CreatedTabSystem = TSystem.AddComponent<TabSystem>();
+        TabSystem tabSystemScript = tabSystem.AddComponent<TabSystem>();
         // Layout group
-        HorizontalLayoutGroup TabSystemLayoutGroup = TSystem.AddComponent<HorizontalLayoutGroup>();
-        TabSystemLayoutGroup.childControlHeight = true;
-        TabSystemLayoutGroup.childControlWidth = true;
-        TabSystemLayoutGroup.spacing = 10f;
+        HorizontalLayoutGroup tabSystemLayoutGroup = tabSystem.AddComponent<HorizontalLayoutGroup>();
+        tabSystemLayoutGroup.childControlHeight = true;
+        tabSystemLayoutGroup.childControlWidth = true;
+        tabSystemLayoutGroup.spacing = 10f;
         // Tab Button
-        CreatedTabSystem.CreateTab();
+        tabSystemScript.CreateTab();
 
         // Resize stuff accordingly.
         // Width -- Height
-        RectTransform TSystemTransform = TSystem.GetComponent<RectTransform>();
-        TSystemTransform.sizeDelta = new Vector2(200, 100);
+        RectTransform tabSystemTransform = tabSystem.GetComponent<RectTransform>();
+        tabSystemTransform.sizeDelta = new Vector2(200, 100);
 
         // Set Unity Stuff
-        Undo.RegisterCreatedObjectUndo(TSystem, string.Format("create {0}", TSystem.name));
-        Selection.activeObject = TSystem;
+        Undo.RegisterCreatedObjectUndo(tabSystem, string.Format("create {0}", tabSystem.name));
+        Selection.activeObject = tabSystem;
     }
 
     /// <summary>
@@ -55,10 +55,12 @@ internal class TabSystemEditor : Editor
     /// </summary>
     public void UndoRecordGenerativeEvent(Action<TabSystem> generativeEvent, string undoMsg)
     {
-        var targets = base.targets.Cast<TabSystem>().ToArray();
+        TabSystem[] targets = base.targets.Cast<TabSystem>().ToArray();
 
         if (undoRecord.Count > 0)
+        {
             undoRecord.Clear();
+        }
 
         Undo.IncrementCurrentGroup();
         Undo.SetCurrentGroupName(undoMsg);
@@ -72,7 +74,9 @@ internal class TabSystemEditor : Editor
             foreach (TabButton btn in system.TabButtons)
             {
                 if (btn == null)
+                {
                     continue;
+                }
 
                 undoRecord.Add(btn.gameObject);
             }
@@ -110,7 +114,9 @@ internal class TabSystemEditor : Editor
             foreach (TabButton createdUndoRegister in target.TabButtons.Where(tb => !undoRecord.Contains(tb.gameObject)))
             {
                 if (createdUndoRegister == null)
+                {
                     continue;
+                }
 
                 Undo.RegisterCreatedObjectUndo(createdUndoRegister.gameObject, string.Empty);
             }
@@ -122,14 +128,14 @@ internal class TabSystemEditor : Editor
     public override void OnInspectorGUI()
     {
         // Support multiple object editing
-        var targets = base.targets.Cast<TabSystem>().ToArray();
+        TabSystem[] targets = base.targets.Cast<TabSystem>().ToArray();
         undoRecord.Clear();
 
         // PropertyField's (using SerializedObject) are already handled by CanEditMultipleObjects attribute
         // For manual GUI, we need to compensate.
-        var tabSO = serializedObject;
-        var gEnabled = GUI.enabled;
-        var showMixed = EditorGUI.showMixedValue;
+        SerializedObject tabSO = serializedObject;
+        bool gEnabled = GUI.enabled;
+        bool showMixed = EditorGUI.showMixedValue;
         tabSO.Update();
 
         // Draw the 'm_Script' field that unity makes (with disabled gui)
@@ -146,7 +152,7 @@ internal class TabSystemEditor : Editor
 
         EditorGUI.BeginChangeCheck();
         bool hasChangedTabButtonAmount = false;
-        var TBtnAmount = EditorGUILayout.IntField(nameof(TabSystem.TabButtonAmount), tBtnAmountTest);
+        int TBtnAmount = EditorGUILayout.IntField(nameof(TabSystem.TabButtonAmount), tBtnAmountTest);
         if (GUILayout.Button("+", GUILayout.Width(20f))) { TBtnAmount++; }
         if (GUILayout.Button("-", GUILayout.Width(20f))) { TBtnAmount--; }
         EditorGUI.showMixedValue = showMixed;
@@ -166,7 +172,7 @@ internal class TabSystemEditor : Editor
         bool hasChangedCurrentReference = false;
         int tReferenceBtnTest = targets[0].CurrentReferenceTabButton;
         EditorGUI.showMixedValue = targets.Any(ts => ts.TabButtonAmount != tBtnAmountTest);
-        var CRefTB = EditorGUILayout.IntField(nameof(TabSystem.CurrentReferenceTabButton), tReferenceBtnTest);
+        int CRefTB = EditorGUILayout.IntField(nameof(TabSystem.CurrentReferenceTabButton), tReferenceBtnTest);
         EditorGUI.showMixedValue = showMixed;
         hasChangedCurrentReference = EditorGUI.EndChangeCheck();
 
@@ -174,7 +180,7 @@ internal class TabSystemEditor : Editor
         bool hasChangedInteractable = false;
         bool tInteractableTest = targets[0].Interactable;
         EditorGUI.showMixedValue = targets.Any(ts => ts.Interactable != tInteractableTest);
-        var TInteractable = EditorGUILayout.Toggle(nameof(TabSystem.Interactable), tInteractableTest);
+        bool TInteractable = EditorGUILayout.Toggle(nameof(TabSystem.Interactable), tInteractableTest);
         EditorGUI.showMixedValue = showMixed;
         hasChangedInteractable = EditorGUI.EndChangeCheck();
 
@@ -287,7 +293,9 @@ internal class TabSystemEditor : Editor
         // Apparently CanEditMultipleObjects ReorderableList has issues while drawing properties (keeps spamming you should stop calling next)
         // Most likely it uses serializedProperty.arraySize instead of iterating properly so we have to ditch the view if there's more than 2 views
         if (targets.Length <= 1)
+        {
             EditorGUILayout.PropertyField(tabSO.FindProperty("tabButtons"));
+        }
 
         GUI.enabled = true;
 
