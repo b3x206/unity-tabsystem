@@ -6,8 +6,12 @@ using TMPro;
 
 using System;
 using System.Collections;
+using UnityEngine.Serialization;
 
-[RequireComponent(typeof(Image))]
+/// <summary>
+/// A tab button component, handles the pointer events and the color/graphic transitions.
+/// The parent <see cref="TabSystem"/> manages it's settings.
+/// </summary>
 public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandler, IPointerEnterHandler, IPointerExitHandler
 {
     /// <summary>
@@ -15,17 +19,18 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
     /// <br>The <see cref="Image"/> parameter is for the background image of the button and the <see cref="TabButton"/> parameter is for the button itself.</br>
     /// </summary>
     [Serializable]
-    public class TabButtonUnityEvent : UnityEvent<Image, TabButton> { }
+    public class ButtonTransitionEvent : UnityEvent<Image, TabButton> { }
 
     // primary type
     /// <summary>
-    /// Primary fading type used for the parent tab system.
+    /// Primary fading type used that is from the parent tab system.
     /// </summary>
     public FadeType FadeType { get { return parentTabSystem.ButtonFadeType; } }
     // images
     private Image buttonBackgroundImage;
     /// <summary>
-    /// C
+    /// Background image assigned to this tab button.
+    /// <br>This is the image used for the fading (<see cref="FadeType"/>).</br>
     /// </summary>
     public Image ButtonBackgroundImage
     {
@@ -42,8 +47,8 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
 
     // color fade
     public Color PrevColor { get; private set; }
-    public Color DisableColor { get { return parentTabSystem.FadeColorTargetDisabled; } }
-    public Color HoverColor { get { return parentTabSystem.FadeColorTargetHover; } }
+    public Color DisableColor { get { return parentTabSystem.FadeColorTargetOnDisabled; } }
+    public Color HoverColor { get { return parentTabSystem.FadeColorTargetOnHover; } }
     // sprite swap
     private Sprite PrevSprite;
 
@@ -84,30 +89,38 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
     /// </summary>
     [SerializeField] private bool receiveContentFromComponents;
 
-    [SerializeField] private bool mInteractable = true;
+    [SerializeField, FormerlySerializedAs("mInteractable")] private bool m_Interactable = true;
     /// <summary>
     /// Whether if this button is interactable.
     /// <br>Note : The parent tab system's interactability overrides this buttons.</br>
     /// </summary>
     public bool Interactable
     {
-        get { return parentTabSystem.Interactable && mInteractable; }
-        set { mInteractable = value; }
+        get { return parentTabSystem.Interactable && m_Interactable; }
+        set { m_Interactable = value; }
     }
 
     [Header(":: Tab Button Reference")]
     [SerializeField] private TMP_Text buttonTMPText;
     [SerializeField] private Image buttonImage;
+    /// <summary>
+    /// Text attached to this button.
+    /// </summary>
     public TMP_Text ButtonTMPText { get { return buttonTMPText; } internal set { buttonTMPText = value; } }
+    /// <summary>
+    /// Image (complimentary one, for the <i>background</i> use <see cref="ButtonBackgroundImage"/>) attached to this button.
+    /// <br/>
+    /// <br>This image is on the left side of the button (by default), but it can be at the "anywhere else" side of the button.</br>
+    /// </summary>
     public Image ButtonImage { get { return buttonImage; } internal set { buttonImage = value; } }
 
-    [Header(":: Internal Reference (don't touch this unless necessary)")]
+    // Internal Reference (don't touch this unless necessary)
     [SerializeField, HideInInspector] private TabSystem parentTabSystem;
+    /// yes, this is indeed janky.
     /// <summary>
     /// Returns the index of this button.
-    /// <br>(note : this may return inaccurate values if there are other children on the parent transform of this button)</br>
     /// </summary>
-    public int ButtonIndex { get { return transform.GetSiblingIndex(); } }
+    public int ButtonIndex { get { return parentTabSystem == null ? transform.GetSiblingIndex() : parentTabSystem.GetButtonIndex(this); } }
     /// <summary>
     /// The parent tab system that this button was initialized with.
     /// </summary>
@@ -119,7 +132,7 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
     /// </summary>
     public bool IsInit => parentTabSystem != null;
     /// <summary>
-    /// Initializes and sets up the callee button.
+    /// Initializes and sets up the button.
     /// </summary>
     public void Initilaze(TabSystem parent)
     {
@@ -134,28 +147,26 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
     {
         if (parentTabSystem == null)
         {
-            Debug.LogWarning(string.Format("[TabButton (name -> '{0}')] The parent tab system is null. Will try to get it.", name));
+            Debug.LogWarning("[TabButton::Start] The parent tab system is null. Getting the parent component.", this);
             TabSystem parentTab = GetComponentInParent<TabSystem>();
 
             if (parentTab == null)
             {
-                Debug.LogWarning(string.Format("[TabButton (name -> '{0}')] The parent tab system is null. Failed to get component.", name));
+                Debug.LogWarning("[TabButton::Start] The parent tab system is null. Failed to get component.", this);
                 return;
             }
 
             parentTabSystem = parentTab;
         }
 
-        // Set Colors
+        // Set Colors + Images
         PrevColor = ButtonBackgroundImage.color;
-
-        // Set Images
         PrevSprite = ButtonBackgroundImage.sprite;
 
-        // If selected object.
-        if (ButtonIndex == 0)
+        // If current button is the selected object.
+        if (ButtonIndex == parentTabSystem.SelectedTabIndex)
         {
-            parentTabSystem.CurrentSelectedTab = this;
+            parentTabSystem.SelectedTab = this;
 
             // Set visuals.
             SetButtonAppearance(ButtonState.Click);
@@ -233,9 +244,9 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
             return;
         }
 
-        parentTabSystem.OnTabButtonsClicked?.Invoke(transform.GetSiblingIndex());
+        parentTabSystem.OnTabButtonClicked?.Invoke(transform.GetSiblingIndex());
 
-        parentTabSystem.CurrentSelectedTab = this;
+        parentTabSystem.SelectedTab = this;
         parentTabSystem.UpdateButtonAppearances();
     }
 
@@ -247,7 +258,7 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
             return;
         }
 
-        if (parentTabSystem.CurrentSelectedTab != this)
+        if (parentTabSystem.SelectedTab != this)
         {
             SetButtonAppearance(ButtonState.Click);
         }
@@ -259,7 +270,7 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
             return;
         }
 
-        if (parentTabSystem.CurrentSelectedTab != this)
+        if (parentTabSystem.SelectedTab != this)
         {
             SetButtonAppearance(ButtonState.Hover);
         }
@@ -271,7 +282,7 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
             return;
         }
 
-        if (parentTabSystem.CurrentSelectedTab != this)
+        if (parentTabSystem.SelectedTab != this)
         {
             SetButtonAppearance(ButtonState.Reset);
         }
@@ -298,10 +309,10 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
                 switch (FadeType)
                 {
                     case FadeType.ColorFade:
-                        TweenColorFade(parentTabSystem.FadeColorTargetDefault, parentTabSystem.FadeSpeed);
+                        TweenColorFade(parentTabSystem.FadeColorTargetOnDefault, parentTabSystem.FadeColorDuration);
                         break;
                     case FadeType.SpriteSwap:
-                        if (PrevSprite != null) { ButtonBackgroundImage.sprite = parentTabSystem.DefaultSpriteToSwap; }
+                        if (PrevSprite != null) { ButtonBackgroundImage.sprite = parentTabSystem.SpriteTargetOnDefault; }
                         else { ButtonBackgroundImage.sprite = null; }
                         break;
                     case FadeType.CustomUnityEvent:
@@ -313,10 +324,10 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
                 switch (FadeType)
                 {
                     case FadeType.ColorFade:
-                        TweenColorFade(parentTabSystem.FadeColorTargetHover, parentTabSystem.FadeSpeed);
+                        TweenColorFade(parentTabSystem.FadeColorTargetOnHover, parentTabSystem.FadeColorDuration);
                         break;
                     case FadeType.SpriteSwap:
-                        ButtonBackgroundImage.sprite = parentTabSystem.HoverSpriteToSwap;
+                        ButtonBackgroundImage.sprite = parentTabSystem.SpriteTargetOnHover;
                         break;
                     case FadeType.CustomUnityEvent:
                         parentTabSystem.ButtonCustomEventOnHover?.Invoke(ButtonBackgroundImage, this);
@@ -327,10 +338,10 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
                 switch (FadeType)
                 {
                     case FadeType.ColorFade:
-                        TweenColorFade(parentTabSystem.FadeColorTargetClick, parentTabSystem.FadeSpeed);
+                        TweenColorFade(parentTabSystem.FadeColorTargetOnClick, parentTabSystem.FadeColorDuration);
                         break;
                     case FadeType.SpriteSwap:
-                        ButtonBackgroundImage.sprite = parentTabSystem.TargetSpriteToSwap;
+                        ButtonBackgroundImage.sprite = parentTabSystem.SpriteTargetOnClick;
                         break;
                     case FadeType.CustomUnityEvent:
                         parentTabSystem.ButtonCustomEventOnClick?.Invoke(ButtonBackgroundImage, this);
@@ -341,10 +352,10 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
                 switch (FadeType)
                 {
                     case FadeType.ColorFade:
-                        TweenColorFade(DisableColor, parentTabSystem.FadeSpeed);
+                        TweenColorFade(DisableColor, parentTabSystem.FadeColorDuration);
                         break;
                     case FadeType.SpriteSwap:
-                        if (PrevSprite != null) { ButtonBackgroundImage.sprite = parentTabSystem.DisabledSpriteToSwap; }
+                        if (PrevSprite != null) { ButtonBackgroundImage.sprite = parentTabSystem.SpriteTargetOnDisabled; }
                         else { ButtonBackgroundImage.sprite = null; }
                         break;
                     case FadeType.CustomUnityEvent:
@@ -362,54 +373,64 @@ public class TabButton : MonoBehaviour, IPointerClickHandler, IPointerDownHandle
     #endregion
 
     #region Color Fading
-    private void TweenColorFade(Color Target, float Duration)
+    /// <summary>
+    /// Tweens the color of <see cref="ButtonBackgroundImage"/> to <paramref name="target"/> with the duration of given <paramref name="duration"/>.
+    /// </summary>
+    /// <param name="target">Target color to end the tween on.</param>
+    /// <param name="duration">Duration of the tween.</param>
+    private void TweenColorFade(Color target, float duration)
     {
         if (!gameObject.activeInHierarchy)
         {
             return; // Do not start coroutines if the object isn't active.
         }
 
-        StartCoroutine(CoroutineTweenColorFade(Target, Duration));
+        StartCoroutine(CoroutineTweenColorFade(target, duration));
     }
-    private IEnumerator CoroutineTweenColorFade(Color Target, float Duration)
+    /// <summary>
+    /// <inheritdoc cref="TweenColorFade(Color, float)"/>
+    /// <br>This is the coroutine, call the <see cref="TweenColorFade(Color, float)"/> to directly dispatch the coroutine.</br>
+    /// </summary>
+    /// <inheritdoc cref="TweenColorFade(Color, float)"/>
+    private IEnumerator CoroutineTweenColorFade(Color target, float duration)
     {
         // Color manipulation
-        Color CurrentPrevColor = ButtonBackgroundImage.color;
-        bool TargetIsPrevColor = Target == PrevColor;
+        Color currentPrevColor = ButtonBackgroundImage.color;
+        bool targetIsPrevColor = target == PrevColor;
 
-        if (parentTabSystem.FadeSubtractFromCurrentColor)
+        if (parentTabSystem.FadeSubtractsFromCurrentColor && !targetIsPrevColor)
         {
-            Target = TargetIsPrevColor ? Target : CurrentPrevColor - Target;
+            target = currentPrevColor - target;
         }
-        // else, leave it unchanged
 
+#if UNITY_EDITOR
         if (!Application.isPlaying)
         {
             // Set the color instantly as the 'UnityEditor' doesn't support tween.
-            ButtonBackgroundImage.color = Target;
+            ButtonBackgroundImage.color = target;
 
             yield break;
         }
-
-        if (Duration <= 0f)
+#endif
+        if (duration <= 0f)
         {
-            ButtonBackgroundImage.color = Target;
+            ButtonBackgroundImage.color = target;
 
             yield break;
         }
 
         // Fade
-        float T = 0f;
+        float t = 0f;
 
-        while (T <= 1.0f)
+        while (t <= 1.0f)
         {
-            T += Time.deltaTime / Duration;
-            ButtonBackgroundImage.color = Color.Lerp(CurrentPrevColor, Target, Mathf.SmoothStep(0, 1, T));
+            t += Time.deltaTime / duration;
+            ButtonBackgroundImage.color = Color.Lerp(currentPrevColor, target, Mathf.SmoothStep(0, 1, t));
             yield return null;
         }
 
         // Set end value.
-        ButtonBackgroundImage.color = Target;
+        ButtonBackgroundImage.color = target;
     }
     #endregion
 }

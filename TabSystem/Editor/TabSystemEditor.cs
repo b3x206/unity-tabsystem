@@ -12,7 +12,7 @@ using Object = UnityEngine.Object;
 /// <br>Allows for dynamic modification &amp; generation on inspector.</br>
 /// </summary>
 [CustomEditor(typeof(TabSystem)), CanEditMultipleObjects]
-internal class TabSystemEditor : Editor
+public class TabSystemEditor : Editor
 {
     //////////// Object Creation
     [MenuItem("GameObject/UI/Tab System")]
@@ -21,7 +21,7 @@ internal class TabSystemEditor : Editor
         Undo.IncrementCurrentGroup();
         Undo.SetCurrentGroupName("create 'TabSystem'");
         int undoGroupIndex = Undo.GetCurrentGroup();
-        
+
         // Create primary gameobject.
         GameObject tabSystem = new GameObject("Tab System");
 
@@ -158,6 +158,9 @@ internal class TabSystemEditor : Editor
 
     public override void OnInspectorGUI()
     {
+        // TODO : This is an eyesore, yes. Everything here needs refactor but i am lazy and it works.
+        // ----
+
         // Support multiple object editing
         TabSystem[] targets = base.targets.Cast<TabSystem>().ToArray();
         undoRecord.Clear();
@@ -183,7 +186,7 @@ internal class TabSystemEditor : Editor
 
         EditorGUI.BeginChangeCheck();
         bool hasChangedTabButtonAmount = false;
-        int TBtnAmount = EditorGUILayout.IntField(nameof(TabSystem.TabButtonAmount), tBtnAmountTest);
+        int TBtnAmount = EditorGUILayout.IntField(ObjectNames.NicifyVariableName(nameof(TabSystem.TabButtonAmount)), tBtnAmountTest);
         if (GUILayout.Button("+", GUILayout.Width(20f))) { TBtnAmount++; }
         if (GUILayout.Button("-", GUILayout.Width(20f))) { TBtnAmount--; }
         EditorGUI.showMixedValue = showMixed;
@@ -201,17 +204,25 @@ internal class TabSystemEditor : Editor
 
         EditorGUI.BeginChangeCheck();
         bool hasChangedCurrentReference = false;
-        int tReferenceBtnTest = targets[0].CurrentReferenceTabButton;
+        int tReferenceBtnTest = targets[0].ReferenceTabButtonIndex;
         EditorGUI.showMixedValue = targets.Any(ts => ts.TabButtonAmount != tBtnAmountTest);
-        int CRefTB = EditorGUILayout.IntField(nameof(TabSystem.CurrentReferenceTabButton), tReferenceBtnTest);
+        int cRefTB = EditorGUILayout.IntField(ObjectNames.NicifyVariableName(nameof(TabSystem.ReferenceTabButtonIndex)), tReferenceBtnTest);
         EditorGUI.showMixedValue = showMixed;
         hasChangedCurrentReference = EditorGUI.EndChangeCheck();
+
+        EditorGUI.BeginChangeCheck();
+        bool hasChangedSelectedBtnIndex = false;
+        int selectedBtnIndexTest = targets[0].SelectedTabIndex;
+        EditorGUI.showMixedValue = targets.Any(ts => ts.SelectedTabIndex != selectedBtnIndexTest);
+        int tBtnSelected = EditorGUILayout.IntField(ObjectNames.NicifyVariableName(nameof(TabSystem.SelectedTabIndex)), selectedBtnIndexTest);
+        EditorGUI.showMixedValue = showMixed;
+        hasChangedSelectedBtnIndex = EditorGUI.EndChangeCheck();
 
         EditorGUI.BeginChangeCheck();
         bool hasChangedInteractable = false;
         bool tInteractableTest = targets[0].Interactable;
         EditorGUI.showMixedValue = targets.Any(ts => ts.Interactable != tInteractableTest);
-        bool TInteractable = EditorGUILayout.Toggle(nameof(TabSystem.Interactable), tInteractableTest);
+        bool tInteractable = EditorGUILayout.Toggle(nameof(TabSystem.Interactable), tInteractableTest);
         EditorGUI.showMixedValue = showMixed;
         hasChangedInteractable = EditorGUI.EndChangeCheck();
 
@@ -229,10 +240,10 @@ internal class TabSystemEditor : Editor
             switch (tFadeTypeTest)
             {
                 case FadeType.ColorFade:
-                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeSpeed)));
+                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeColorDuration)));
                     // Set the default color dynamically on the editor
                     EditorGUI.BeginChangeCheck();
-                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeColorTargetDefault)));
+                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeColorTargetOnDefault)));
                     if (EditorGUI.EndChangeCheck())
                     {
                         // Lazy way of intercepting undo, as property fields don't really like other undos registered after itself
@@ -248,14 +259,14 @@ internal class TabSystemEditor : Editor
                             SceneView.RepaintAll();
                         }
                     }
-                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeColorTargetHover)));
-                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeColorTargetClick)));
-                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeColorTargetDisabled)));
-                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeSubtractFromCurrentColor)));
+                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeColorTargetOnHover)));
+                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeColorTargetOnClick)));
+                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeColorTargetOnDisabled)));
+                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeSubtractsFromCurrentColor)));
                     break;
                 case FadeType.SpriteSwap:
                     EditorGUI.BeginChangeCheck();
-                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.DefaultSpriteToSwap)));
+                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.SpriteTargetOnDefault)));
                     if (EditorGUI.EndChangeCheck())
                     {
                         foreach (TabSystem target in targets)
@@ -270,9 +281,9 @@ internal class TabSystemEditor : Editor
                             SceneView.RepaintAll();
                         }
                     }
-                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.HoverSpriteToSwap)));
-                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.TargetSpriteToSwap)));
-                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.DisabledSpriteToSwap)));
+                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.SpriteTargetOnHover)));
+                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.SpriteTargetOnClick)));
+                    EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.SpriteTargetOnDisabled)));
                     break;
                 case FadeType.CustomUnityEvent:
                     EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.ButtonCustomEventOnReset)));
@@ -288,9 +299,10 @@ internal class TabSystemEditor : Editor
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Tab Event", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.OnTabButtonsClicked)));
+        EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.OnTabButtonClicked)));
+        EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.OnTabButtonCreated)));
 
-        if (hasChangedInteractable || hasChangedTabButtonAmount || hasChangedCurrentReference)
+        if (hasChangedInteractable || hasChangedTabButtonAmount || hasChangedCurrentReference || hasChangedSelectedBtnIndex)
         {
             // As an optimization, refrain from executing end change check with arrays as much as possible
             // This will only be possible if we check all tab button amount and interactibility states ofc, which is inconvenient.
@@ -300,15 +312,20 @@ internal class TabSystemEditor : Editor
                 {
                     target.TabButtonAmount = TBtnAmount;
                 }
-                if (hasChangedInteractable && target.Interactable != TInteractable)
+                if (hasChangedInteractable && target.Interactable != tInteractable)
                 {
-                    target.Interactable = TInteractable;
+                    target.Interactable = tInteractable;
                     SceneView.RepaintAll(); // Update views instantly
                 }
 
                 if (hasChangedCurrentReference)
                 {
-                    target.CurrentReferenceTabButton = CRefTB;
+                    target.ReferenceTabButtonIndex = cRefTB;
+                }
+
+                if (hasChangedSelectedBtnIndex)
+                {
+                    target.SelectedTabIndex = tBtnSelected;
                 }
             }, "change variable on TabSystem");
         }
@@ -320,6 +337,7 @@ internal class TabSystemEditor : Editor
         EditorGUILayout.LabelField("Tab List", EditorStyles.boldLabel);
 
         EditorGUI.indentLevel++; // indentLevel = normal + 1
+        bool prevGUIEnabled = GUI.enabled;
         GUI.enabled = false;
         // Apparently CanEditMultipleObjects ReorderableList has issues while drawing properties (keeps spamming you should stop calling next)
         // Most likely it uses serializedProperty.arraySize instead of iterating properly so we have to ditch the view if there's more than 2 views
@@ -328,7 +346,7 @@ internal class TabSystemEditor : Editor
             EditorGUILayout.PropertyField(tabSO.FindProperty("tabButtons"));
         }
 
-        GUI.enabled = true;
+        GUI.enabled = prevGUIEnabled;
 
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("Clear Tabs"))
