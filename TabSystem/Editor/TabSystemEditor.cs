@@ -1,10 +1,9 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using UnityEditor;
-
-using System;
-using System.Linq;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 /// <summary>
@@ -12,12 +11,10 @@ using Object = UnityEngine.Object;
 /// <br>Allows for dynamic modification &amp; generation on inspector.</br>
 /// </summary>
 [CustomEditor(typeof(TabSystem)), CanEditMultipleObjects]
-public class TabSystemEditor : Editor
-{
+public class TabSystemEditor : Editor {
     //////////// Object Creation
     [MenuItem("GameObject/UI/Tab System")]
-    public static void CreateTabSystem(MenuCommand command)
-    {
+    public static void CreateTabSystem(MenuCommand command) {
         Undo.IncrementCurrentGroup();
         Undo.SetCurrentGroupName("create 'TabSystem'");
         int undoGroupIndex = Undo.GetCurrentGroup();
@@ -27,18 +24,15 @@ public class TabSystemEditor : Editor
 
         // Align stuff
         GameObject parentObject = (GameObject)command.context;
-        if (parentObject == null || parentObject.GetComponentInParent<Canvas>() == null)
-        {
+        if (parentObject == null || parentObject.GetComponentInParent<Canvas>() == null) {
             // There probably exists a shorthand editor utility for doing this, please let me know if it actually does.
             // but otherwise this does mostly the same thing as creating a button menu item, requiring an actual canvas
             Canvas firstCanvas = FindFirstObjectByType<Canvas>();
-            if (firstCanvas != null)
-            {
+            if (firstCanvas != null) {
                 parentObject = firstCanvas.gameObject;
             }
             // No canvas exists, create a blank canvas on the scene root.
-            else
-            {
+            else {
                 parentObject = new GameObject("Canvas");
                 firstCanvas = parentObject.AddComponent<Canvas>();
                 // Required by the tabsystem
@@ -84,12 +78,10 @@ public class TabSystemEditor : Editor
     /// <summary>
     /// Records a generative event for a tab system targets array.
     /// </summary>
-    public void UndoRecordGenerativeEvent(Action<TabSystem> generativeEvent, string undoMsg)
-    {
+    public void UndoRecordGenerativeEvent(Action<TabSystem> generativeEvent, string undoMsg) {
         TabSystem[] targets = base.targets.Cast<TabSystem>().ToArray();
 
-        if (undoRecord.Count > 0)
-        {
+        if (undoRecord.Count > 0) {
             undoRecord.Clear();
         }
 
@@ -100,12 +92,9 @@ public class TabSystemEditor : Editor
         // to be destroyed / created TabSystem gameobjects
         // Since we are iterating an array of arrays, we don't use the utility method (as this is called one time)
         // Register all buttons into the undo record.
-        foreach (TabSystem system in targets)
-        {
-            foreach (TabButton btn in system.TabButtons)
-            {
-                if (btn == null)
-                {
+        foreach (TabSystem system in targets) {
+            foreach (TabButtonC btn in system.TabButtons) {
+                if (btn == null) {
                     continue;
                 }
 
@@ -113,39 +102,32 @@ public class TabSystemEditor : Editor
             }
         }
 
-        foreach (TabSystem target in targets)
-        {
+        foreach (TabSystem target in targets) {
             // Undo.RecordObject does not work
             // Because unity.
             // Undo.RecordObject(target, string.Empty);
             Undo.RegisterCompleteObjectUndo(target, string.Empty);
 
-            if (!PrefabUtility.IsPartOfAnyPrefab(target))
-            {
+            if (!PrefabUtility.IsPartOfAnyPrefab(target)) {
                 EditorUtility.SetDirty(target);
             }
 
             generativeEvent(target);
 
-            if (PrefabUtility.IsPartOfAnyPrefab(target))
-            {
+            if (PrefabUtility.IsPartOfAnyPrefab(target)) {
                 // RegisterCompleteObjectUndo does not immediately add the object into the Undo list
                 // So do this to avoid bugs, as this needs to be done after the undo list was updated.
 
-                EditorApplication.delayCall += () =>
-                {
+                EditorApplication.delayCall += () => {
                     PrefabUtility.RecordPrefabInstancePropertyModifications(target);
                 };
             }
         }
 
         // Apply serializedObject
-        foreach (TabSystem target in targets)
-        {
-            foreach (TabButton createdUndoRegister in target.TabButtons.Where(tb => !undoRecord.Contains(tb.gameObject)))
-            {
-                if (createdUndoRegister == null)
-                {
+        foreach (TabSystem target in targets) {
+            foreach (TabButtonC createdUndoRegister in target.TabButtons.Where(tb => !undoRecord.Contains(tb.gameObject))) {
+                if (createdUndoRegister == null) {
                     continue;
                 }
 
@@ -156,8 +138,7 @@ public class TabSystemEditor : Editor
         Undo.CollapseUndoOperations(undoID);
     }
 
-    public override void OnInspectorGUI()
-    {
+    public override void OnInspectorGUI() {
         // TODO : This is an eyesore, yes. Everything here needs refactor but i am lazy and it works.
         // ----
 
@@ -194,8 +175,7 @@ public class TabSystemEditor : Editor
         hasChangedTabButtonAmount = EditorGUI.EndChangeCheck();
 
         // Show warning if TabButtonAmount is 0 or lower.
-        if (targets.Any(tb => tb.TabButtonAmount <= 0))
-        {
+        if (targets.Any(tb => tb.TabButtonAmount <= 0)) {
             string disabledMsg = targets.Length > 1 ? "(Some) TabSystem(s) are disabled. " : "TabSystem is disabled.";
             disabledMsg += "To enable it again set TabButtonAmount to 1 or more.";
 
@@ -235,22 +215,17 @@ public class TabSystemEditor : Editor
 
         // Button fade
         // Hide any button fade options if the types are different, otherwise show.
-        if (!isFadeTypeMixedValue)
-        {
-            switch (tFadeTypeTest)
-            {
+        if (!isFadeTypeMixedValue) {
+            switch (tFadeTypeTest) {
                 case FadeType.ColorFade:
                     EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeColorDuration)));
                     // Set the default color dynamically on the editor
                     EditorGUI.BeginChangeCheck();
                     EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.FadeColorTargetOnDefault)));
-                    if (EditorGUI.EndChangeCheck())
-                    {
+                    if (EditorGUI.EndChangeCheck()) {
                         // Lazy way of intercepting undo, as property fields don't really like other undos registered after itself
-                        foreach (TabSystem target in targets)
-                        {
-                            Undo.undoRedoPerformed += () =>
-                            {
+                        foreach (TabSystem target in targets) {
+                            Undo.undoRedoPerformed += () => {
                                 target.UpdateButtonAppearances();
                                 SceneView.RepaintAll();
                             };
@@ -267,12 +242,9 @@ public class TabSystemEditor : Editor
                 case FadeType.SpriteSwap:
                     EditorGUI.BeginChangeCheck();
                     EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.SpriteTargetOnDefault)));
-                    if (EditorGUI.EndChangeCheck())
-                    {
-                        foreach (TabSystem target in targets)
-                        {
-                            Undo.undoRedoPerformed += () =>
-                            {
+                    if (EditorGUI.EndChangeCheck()) {
+                        foreach (TabSystem target in targets) {
+                            Undo.undoRedoPerformed += () => {
                                 target.UpdateButtonAppearances();
                                 SceneView.RepaintAll();
                             };
@@ -302,29 +274,23 @@ public class TabSystemEditor : Editor
         EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.OnTabButtonClicked)));
         EditorGUILayout.PropertyField(tabSO.FindProperty(nameof(TabSystem.OnTabButtonCreated)));
 
-        if (hasChangedInteractable || hasChangedTabButtonAmount || hasChangedCurrentReference || hasChangedSelectedBtnIndex)
-        {
+        if (hasChangedInteractable || hasChangedTabButtonAmount || hasChangedCurrentReference || hasChangedSelectedBtnIndex) {
             // As an optimization, refrain from executing end change check with arrays as much as possible
             // This will only be possible if we check all tab button amount and interactibility states ofc, which is inconvenient.
-            UndoRecordGenerativeEvent((TabSystem target) =>
-            {
-                if (hasChangedTabButtonAmount && target.TabButtonAmount != TBtnAmount)
-                {
+            UndoRecordGenerativeEvent((TabSystem target) => {
+                if (hasChangedTabButtonAmount && target.TabButtonAmount != TBtnAmount) {
                     target.TabButtonAmount = TBtnAmount;
                 }
-                if (hasChangedInteractable && target.Interactable != tInteractable)
-                {
+                if (hasChangedInteractable && target.Interactable != tInteractable) {
                     target.Interactable = tInteractable;
                     SceneView.RepaintAll(); // Update views instantly
                 }
 
-                if (hasChangedCurrentReference)
-                {
+                if (hasChangedCurrentReference) {
                     target.ReferenceTabButtonIndex = cRefTB;
                 }
 
-                if (hasChangedSelectedBtnIndex)
-                {
+                if (hasChangedSelectedBtnIndex) {
                     target.SelectedTabIndex = tBtnSelected;
                 }
             }, "change variable on TabSystem");
@@ -341,32 +307,25 @@ public class TabSystemEditor : Editor
         GUI.enabled = false;
         // Apparently CanEditMultipleObjects ReorderableList has issues while drawing properties (keeps spamming you should stop calling next)
         // Most likely it uses serializedProperty.arraySize instead of iterating properly so we have to ditch the view if there's more than 2 views
-        if (targets.Length <= 1)
-        {
+        if (targets.Length <= 1) {
             EditorGUILayout.PropertyField(tabSO.FindProperty("tabButtons"));
         }
 
         GUI.enabled = prevGUIEnabled;
 
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Clear Tabs"))
-        {
-            UndoRecordGenerativeEvent((TabSystem target) =>
-            {
+        if (GUILayout.Button("Clear Tabs")) {
+            UndoRecordGenerativeEvent((TabSystem target) => {
                 target.ClearTabs();
             }, "clear tabs on TabSystem");
         }
-        if (GUILayout.Button("Generate Tabs"))
-        {
-            UndoRecordGenerativeEvent((TabSystem target) =>
-            {
+        if (GUILayout.Button("Generate Tabs")) {
+            UndoRecordGenerativeEvent((TabSystem target) => {
                 target.GenerateTabs();
             }, "generate tabs on TabSystem");
         }
-        if (GUILayout.Button("Reset Tabs"))
-        {
-            UndoRecordGenerativeEvent((TabSystem target) =>
-            {
+        if (GUILayout.Button("Reset Tabs")) {
+            UndoRecordGenerativeEvent((TabSystem target) => {
                 target.ResetTabs();
             }, "reset tabs on TabSystem");
         }

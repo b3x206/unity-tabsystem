@@ -1,20 +1,18 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
+﻿using System;
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
-using TMPro;
-
-using System;
-using System.Collections.Generic;
+using UnityEngine.UI;
 
 /// <summary>
 /// The fading type of TabButton.
 /// </summary>
 /// <br>Instead of using an <see cref="Selectable"/>, this was the solution I resorted to like 1(?) year ago.</br>
 /// However, newer solutions that i will do will break compat.
-public enum FadeType
-{
+public enum FadeType {
     None,
     ColorFade,
     SpriteSwap,
@@ -26,8 +24,7 @@ public enum FadeType
 /// <br>Allows to control the buttons and events, this is the main component that manages the of the <see cref="TabButton"/>s.</br>
 /// </summary>
 [ExecuteAlways, DisallowMultipleComponent]
-public class TabSystem : UIBehaviour
-{
+public class TabSystem : UIBehaviour {
     /// <summary>
     /// An unity event that takes an int parameter.
     /// </summary>
@@ -37,20 +34,17 @@ public class TabSystem : UIBehaviour
     /// An unity event that takes a tab button parameter (with an index).
     /// </summary>
     [Serializable]
-    public class TabButtonUnityEvent : UnityEvent<int, TabButton> { }
+    public class TabButtonUnityEvent : UnityEvent<int, TabButtonC> { }
 
     ///////////// Public
     /// <summary>
     /// The amount of the tab buttons. 0 means disabled.
     /// </summary>
-    public int TabButtonAmount
-    {
-        get
-        {
+    public int TabButtonAmount {
+        get {
             return _TabButtonAmount;
         }
-        set
-        {
+        set {
             int prevValue = _TabButtonAmount;
             // The weird value is because that the 'TabButtonAmount' will kill your pc if not clampped.
             _TabButtonAmount = Mathf.Clamp(value, 0, ushort.MaxValue);
@@ -65,18 +59,14 @@ public class TabSystem : UIBehaviour
     /// <summary>
     /// The index of the currently referenced tab button.
     /// </summary>
-    public int ReferenceTabButtonIndex
-    {
-        get
-        {
+    public int ReferenceTabButtonIndex {
+        get {
             // Also clamp the return as that's necessary to protect sanity
             // (Note : clamp with TabButtons.Count as that's the actual button amount).
             return Mathf.Clamp(_ReferenceTabButtonIndex, 0, tabButtons.Count - 1);
         }
-        set
-        {
-            if (_ReferenceTabButtonIndex == value)
-            {
+        set {
+            if (_ReferenceTabButtonIndex == value) {
                 return;
             }
 
@@ -88,14 +78,11 @@ public class TabSystem : UIBehaviour
     /// <summary>
     /// The index of the currently selected tab button.
     /// </summary>
-    public int SelectedTabIndex
-    {
-        get
-        {
+    public int SelectedTabIndex {
+        get {
             return GetSelectedButtonIndex();
         }
-        set
-        {
+        set {
             SetSelectedButtonIndex(value);
         }
     }
@@ -105,10 +92,10 @@ public class TabSystem : UIBehaviour
     /// <summary>
     /// Manages the button fading type.
     /// <br/>
-    /// <br><see cref="FadeType.None"/> : None of the '<see cref="Color"/>/<see cref="Sprite"/>/<see cref="TabButton.ButtonTransitionEvent"/>'s are used.</br>
+    /// <br><see cref="FadeType.None"/> : None of the '<see cref="Color"/>/<see cref="Sprite"/>/<see cref="TabButtonC.ButtonTransitionEvent"/>'s are used.</br>
     /// <br><see cref="FadeType.ColorFade"/> : Fades the <see cref="Color"/> using the variables prefixed with 'FadeColor'.</br>
     /// <br><see cref="FadeType.SpriteSwap"/> : Changes the <see cref="Sprite"/> of the tab buttons using the variables prefixed with 'SpriteTarget'.</br>
-    /// <br><see cref="FadeType.CustomUnityEvent"/> : Calls the <see cref="TabButton.ButtonTransitionEvent"/> on each interacted button using the variables prefixed with 'ButtonCustomEvent'.</br>
+    /// <br><see cref="FadeType.CustomUnityEvent"/> : Calls the <see cref="TabButtonC.ButtonTransitionEvent"/> on each interacted button using the variables prefixed with 'ButtonCustomEvent'.</br>
     /// </summary>
     public FadeType ButtonFadeType = FadeType.ColorFade;
     // ButtonFadeType = ColorFade
@@ -133,17 +120,17 @@ public class TabSystem : UIBehaviour
     [FormerlySerializedAs("TargetSpriteToSwap")] public Sprite SpriteTargetOnClick;
     [FormerlySerializedAs("DisabledSpriteToSwap")] public Sprite SpriteTargetOnDisabled;
     // ButtonFadeType = CustomUnityEvent
-    public TabButton.ButtonTransitionEvent ButtonCustomEventOnReset;
-    public TabButton.ButtonTransitionEvent ButtonCustomEventOnHover;
-    public TabButton.ButtonTransitionEvent ButtonCustomEventOnClick;
-    public TabButton.ButtonTransitionEvent ButtonCustomEventOnDisable;
+    public TabButtonC.ButtonTransitionEvent ButtonCustomEventOnReset;
+    public TabButtonC.ButtonTransitionEvent ButtonCustomEventOnHover;
+    public TabButtonC.ButtonTransitionEvent ButtonCustomEventOnClick;
+    public TabButtonC.ButtonTransitionEvent ButtonCustomEventOnDisable;
 
     // -- Standard event
     // This variable is added to take more control of the generation of the buttons.
     /// <summary>
     /// Called when a tab button is created.
     /// <br><see langword="int"/> parameter : Returns the index.</br> 
-    /// <br><see cref="TabButton"/> parameter : Returns the created button.</br>
+    /// <br><see cref="TabButtonC"/> parameter : Returns the created button.</br>
     /// </summary>
     [FormerlySerializedAs("OnTabButtonsClicked")] public TabButtonUnityEvent OnTabButtonCreated;
     /// <summary>
@@ -152,19 +139,16 @@ public class TabSystem : UIBehaviour
     public IntUnityEvent OnTabButtonClicked;
 
     /// <inheritdoc cref="SelectedTab"/>
-    private TabButton _SelectedTab;
+    private TabButtonC _SelectedTab;
     /// <summary>
     /// Returns the current selected tab.
     /// <br>This value could be null, but it can't be set to null.</br>
     /// </summary>
-    public TabButton SelectedTab
-    {
-        get
-        {
+    public TabButtonC SelectedTab {
+        get {
             return _SelectedTab;
         }
-        internal set
-        {
+        internal set {
             _SelectedTabIndex = GetButtonIndex(value);
             _SelectedTab = value;
         }
@@ -173,22 +157,18 @@ public class TabSystem : UIBehaviour
     /// Get a tab button by directly indexing a tab system.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException"/>
-    public TabButton this[int index]
-    {
-        get
-        {
+    public TabButtonC this[int index] {
+        get {
             return TabButtons[index];
         }
     }
 
-    [SerializeField] private List<TabButton> tabButtons = new List<TabButton>();
+    [SerializeField] private List<TabButtonC> tabButtons = new List<TabButtonC>();
     /// <summary>
     /// List of the currently registered tab buttons.
     /// </summary>
-    public IReadOnlyList<TabButton> TabButtons
-    {
-        get
-        {
+    public IReadOnlyList<TabButtonC> TabButtons {
+        get {
             return tabButtons;
         }
     }
@@ -200,11 +180,9 @@ public class TabSystem : UIBehaviour
     /// <summary>
     /// Whether if this element is interactable with.
     /// </summary>
-    public bool Interactable
-    {
+    public bool Interactable {
         get { return IsInteractable(); }
-        set
-        {
+        set {
             interactable = value;
 
             UpdateButtonAppearances();
@@ -217,18 +195,15 @@ public class TabSystem : UIBehaviour
     /// <summary>
     /// Whether if the UI element is allowed to be interactable.
     /// </summary>
-    internal virtual bool IsInteractable()
-    {
-        if (groupsAllowInteraction)
-        {
+    internal virtual bool IsInteractable() {
+        if (groupsAllowInteraction) {
             return interactable;
         }
 
         return false;
     }
     private readonly List<CanvasGroup> canvasGroupCache = new List<CanvasGroup>();
-    protected override void OnCanvasGroupChanged()
-    {
+    protected override void OnCanvasGroupChanged() {
         // This event is part of Selectable (but i adapted it to this script).
         // Search for 'CanvasGroup' behaviours & apply preferences to this object.
         // 1: Search for transforms that contain 'CanvasGroup'
@@ -237,32 +212,26 @@ public class TabSystem : UIBehaviour
         bool groupAllowInteraction = true;
         Transform t = transform;
 
-        while (t != null)
-        {
+        while (t != null) {
             t.GetComponents(canvasGroupCache);
             bool shouldBreak = false;
 
-            for (int i = 0; i < canvasGroupCache.Count; i++)
-            {
-                if (!canvasGroupCache[i].interactable)
-                {
+            for (int i = 0; i < canvasGroupCache.Count; i++) {
+                if (!canvasGroupCache[i].interactable) {
                     groupAllowInteraction = false;
                     shouldBreak = true;
                 }
-                if (canvasGroupCache[i].ignoreParentGroups)
-                {
+                if (canvasGroupCache[i].ignoreParentGroups) {
                     shouldBreak = true;
                 }
             }
-            if (shouldBreak)
-            {
+            if (shouldBreak) {
                 break;
             }
 
             t = t.parent;
         }
-        if (groupAllowInteraction != groupsAllowInteraction)
-        {
+        if (groupAllowInteraction != groupsAllowInteraction) {
             groupsAllowInteraction = groupAllowInteraction;
             UpdateButtonAppearances();
         }
@@ -274,10 +243,8 @@ public class TabSystem : UIBehaviour
     /// <br>Required to check 0 / 1 tabs disable-enable state.</br>
     /// </summary>
     /// <param name="prevIndex">Previous index passed by the <see cref="TabButtonAmount"/>'s setter.</param>
-    protected void GenerateTabs(int prevIndex)
-    {
-        if (tabButtons.Count <= 0)
-        {
+    protected void GenerateTabs(int prevIndex) {
+        if (tabButtons.Count <= 0) {
             // Generate tabs from scratch if there is none.
             GenerateTabs();
             return;
@@ -285,40 +252,29 @@ public class TabSystem : UIBehaviour
 
         // Ignore if count is 0 or less
         // While this isn't a suitable place for tab management, i wanted to add an '0' state to it. 
-        TabButton firstTBtn = tabButtons[0];
+        TabButtonC firstTBtn = tabButtons[0];
 
-        if (TabButtonAmount <= 0)
-        {
+        if (TabButtonAmount <= 0) {
             // Make sure the first tab button exists as we need to call 'GenerateTabs' for first spawn.
-            if (firstTBtn != null)
-            {
+            if (firstTBtn != null) {
                 firstTBtn.gameObject.SetActive(false);
 
                 // Clean the buttons as that's necessary. (otherwise there's stray buttons)
-                for (int i = 1; i < tabButtons.Count; i++)
-                {
-                    if (Application.isPlaying)
-                    {
-                        if (tabButtons[i] != null)
-                        {
+                for (int i = 1; i < tabButtons.Count; i++) {
+                    if (Application.isPlaying) {
+                        if (tabButtons[i] != null) {
                             DestroyImmediate(tabButtons[i].gameObject); // Have to use DestroyImmediate here as well, otherwise unity gets stuck.
-                        }
-                        else
-                        {
+                        } else {
                             // Tab button is null, call CleanTabButtonsList
                             CleanTabButtonsList();
                             continue;
                         }
                     }
 #if UNITY_EDITOR
-                    else
-                    {
-                        if (tabButtons[i] != null)
-                        {
+                    else {
+                        if (tabButtons[i] != null) {
                             UnityEditor.Undo.DestroyObjectImmediate(tabButtons[i].gameObject);
-                        }
-                        else
-                        {
+                        } else {
                             // Tab button is null, call CleanTabButtonsList
                             CleanTabButtonsList();
                             continue;
@@ -331,27 +287,21 @@ public class TabSystem : UIBehaviour
                 return;
             }
             // In this case of this if statement, it's not necessary as the button amount is already 0.
-        }
-        else if (TabButtonAmount == 1 && prevIndex <= 0)
-        {
+        } else if (TabButtonAmount == 1 && prevIndex <= 0) {
             // Make sure the first tab button exists as we need to call 'GenerateTabs' for first spawn.
-            if (firstTBtn != null)
-            {
+            if (firstTBtn != null) {
                 // This is bad, calling fake event here.
                 // But the thing is : 0 tab button amount mean disabled
                 firstTBtn.gameObject.SetActive(true);
                 // Do status update - management
                 // This should have been done all in 'CreateTab' method but yeah
                 // firstTBtn.parentTabSystem = this;
-                if (!firstTBtn.IsInit)
-                {
+                if (!firstTBtn.IsInit) {
                     firstTBtn.Initilaze(this);
                 }
 
                 OnTabButtonCreated?.Invoke(0, firstTBtn);
-            }
-            else
-            {
+            } else {
                 // List needs to be cleaned (has null member that we can't access, will throw exceptions)
                 CleanTabButtonsList();
             }
@@ -363,38 +313,28 @@ public class TabSystem : UIBehaviour
     /// <summary>
     /// Generates tabs.
     /// </summary>
-    public void GenerateTabs()
-    {
+    public void GenerateTabs() {
         // Normal creation
-        while (tabButtons.Count > TabButtonAmount)
-        {
-            if (Application.isPlaying)
-            {
-                if (tabButtons[tabButtons.Count - 1] != null)
-                {
+        while (tabButtons.Count > TabButtonAmount) {
+            if (Application.isPlaying) {
+                if (tabButtons[tabButtons.Count - 1] != null) {
                     // We need to use DestroyImmediate here as there's no need for the reference
                     // Otherwise the script gets stuck at an infinite loop and dies.
                     // (this is because the while loop is on the main thread, but the 'Destroy' stuff is also done on the main thread after this method is done,
                     // basically not destroying the object, 'while' loop is just constantly calling 'Destroy' to the same object)
                     // (this is kinda similar to the godot's 'queue_free' and 'free' distinction, now comparing 'tabButtons[tabButtons.Count - 1]' to null will be always true)
                     DestroyImmediate(tabButtons[tabButtons.Count - 1].gameObject);
-                }
-                else
-                {
+                } else {
                     // Tab button is null, call CleanTabButtonsList
                     CleanTabButtonsList();
                     continue;
                 }
             }
 #if UNITY_EDITOR
-            else
-            {
-                if (tabButtons[tabButtons.Count - 1] != null)
-                {
+            else {
+                if (tabButtons[tabButtons.Count - 1] != null) {
                     UnityEditor.Undo.DestroyObjectImmediate(tabButtons[tabButtons.Count - 1].gameObject);
-                }
-                else
-                {
+                } else {
                     // Tab button is null, call CleanTabButtonsList
                     CleanTabButtonsList();
                     continue;
@@ -403,8 +343,7 @@ public class TabSystem : UIBehaviour
 #endif
             CleanTabButtonsList();
         }
-        while (tabButtons.Count < TabButtonAmount)
-        {
+        while (tabButtons.Count < TabButtonAmount) {
             CreateTab();
         }
     }
@@ -412,23 +351,18 @@ public class TabSystem : UIBehaviour
     /// Reset tabs.
     /// <br>Call this method if you have an issue with your tabs.</br>
     /// </summary>
-    public void ResetTabs()
-    {
+    public void ResetTabs() {
         ClearTabs(true, true);
 
         // Destroy all childs
-        if (tabButtons.Count <= 1 && transform.childCount > 1)
-        {
+        if (tabButtons.Count <= 1 && transform.childCount > 1) {
             int tChild = transform.childCount;
-            for (int i = 0; i < tChild; i++)
-            {
-                if (Application.isPlaying)
-                {
+            for (int i = 0; i < tChild; i++) {
+                if (Application.isPlaying) {
                     Destroy(transform.GetChild(0).gameObject);
                 }
 #if UNITY_EDITOR
-                else
-                {
+                else {
                     UnityEditor.Undo.DestroyObjectImmediate(transform.GetChild(0).gameObject);
                 }
 #endif
@@ -436,7 +370,7 @@ public class TabSystem : UIBehaviour
         }
 
         // Create new tab and refresh 
-        TabButton tab = CreateTab(false);
+        TabButtonC tab = CreateTab(false);
         tab.Initilaze(this);     // this may be redundant
         tabButtons.Clear();
         tabButtons.Add(tab);
@@ -446,45 +380,37 @@ public class TabSystem : UIBehaviour
     /// </summary>
     /// <param name="resetTabBtnAmount">Sets internal variable of TabButtonAmount to be 1.</param>
     /// <param name="clearAll">Clears all of the buttons (hard reset parameter).</param>
-    public void ClearTabs(bool resetTabBtnAmount = true, bool clearAll = false)
-    {
+    public void ClearTabs(bool resetTabBtnAmount = true, bool clearAll = false) {
         CleanTabButtonsList();
 
         // Destroy array.
-        foreach (TabButton button in tabButtons)
-        {
-            if (button.ButtonIndex == 0 && !clearAll)
-            {
+        foreach (TabButtonC button in tabButtons) {
+            if (button.ButtonIndex == 0 && !clearAll) {
                 continue;
             }
 
-            if (Application.isPlaying)
-            {
+            if (Application.isPlaying) {
                 Destroy(button.gameObject);
             }
 #if UNITY_EDITOR
-            else
-            {
+            else {
                 UnityEditor.Undo.DestroyObjectImmediate(button.gameObject);
             }
 #endif
         }
 
-        if (tabButtons.Count > 1)
-        {
+        if (tabButtons.Count > 1) {
             tabButtons.RemoveRange(1, Mathf.Max(1, tabButtons.Count - 1));
         }
 
-        if (!clearAll)
-        {
-            TabButton tempTabBtn = tabButtons[0];
+        if (!clearAll) {
+            TabButtonC tempTabBtn = tabButtons[0];
             tabButtons.Clear();
             tabButtons.Add(tempTabBtn);
             tempTabBtn.Initilaze(this);
         }
 
-        if (resetTabBtnAmount)
-        {
+        if (resetTabBtnAmount) {
             _TabButtonAmount = 1;
         }
     }
@@ -495,17 +421,15 @@ public class TabSystem : UIBehaviour
     /// </summary>
     /// <param name="useReferenceTab">Whether to use the referenced tab from index <see cref="ReferenceTabButtonIndex"/>.</param>
     /// <returns>Creation button result.</returns>
-    public TabButton CreateTab(bool useReferenceTab = true)
-    {
-        TabButton tabButtonScript;
+    public TabButtonC CreateTab(bool useReferenceTab = true) {
+        TabButtonC tabButtonScript;
 
-        if (tabButtons.Count <= 0 || !useReferenceTab)
-        {
+        if (tabButtons.Count <= 0 || !useReferenceTab) {
             GameObject tabButton = new GameObject("Tab");
             tabButton.transform.SetParent(transform);
             tabButton.transform.localScale = Vector3.one;
 
-            tabButtonScript = tabButton.AddComponent<TabButton>();
+            tabButtonScript = tabButton.AddComponent<TabButtonC>();
 
             // -- Text
             GameObject tabText = new GameObject("Tab Text");
@@ -538,12 +462,9 @@ public class TabSystem : UIBehaviour
             ButtonImage.rectTransform.offsetMax = Vector2.zero;
 
             tabButtonScript.GenerateButtonContent();
-        }
-        else
-        {
-            TabButton tabButtonInstantiationTarget = tabButtons[ReferenceTabButtonIndex];
-            if (tabButtonInstantiationTarget == null)
-            {
+        } else {
+            TabButtonC tabButtonInstantiationTarget = tabButtons[ReferenceTabButtonIndex];
+            if (tabButtonInstantiationTarget == null) {
                 // No reference tab to create from, don't use a reference.
                 return CreateTab(false);
             }
@@ -558,8 +479,7 @@ public class TabSystem : UIBehaviour
         tabButtonScript.Initilaze(this);
         tabButtonScript.gameObject.name = tabButtonScript.gameObject.name.Replace("(Clone)", string.Empty);
         int objectNameIndexSplit = tabButtonScript.gameObject.name.LastIndexOf('_');
-        if (objectNameIndexSplit != -1)
-        {
+        if (objectNameIndexSplit != -1) {
             // If the previous name was prefixed with an underscore, remove the underscore
             tabButtonScript.gameObject.name = tabButtonScript.gameObject.name.Substring(0, objectNameIndexSplit);
         }
@@ -577,29 +497,24 @@ public class TabSystem : UIBehaviour
     /// Updates the appearances of the buttons.
     /// <br>Call this when you need to visually update the button.</br>
     /// </summary>
-    public void UpdateButtonAppearances()
-    {
-        foreach (TabButton button in tabButtons)
-        {
-            if (button == null)
-            {
+    public void UpdateButtonAppearances() {
+        foreach (TabButtonC button in tabButtons) {
+            if (button == null) {
                 continue;
             }
 
-            if (!Interactable)
-            {
-                button.SetButtonAppearance(TabButton.ButtonState.Disable);
+            if (!Interactable) {
+                button.SetButtonAppearance(TabButtonC.ButtonState.Disable);
                 continue;
             }
 
-            button.SetButtonAppearance(SelectedTab == button ? TabButton.ButtonState.Click : TabButton.ButtonState.Reset);
+            button.SetButtonAppearance(SelectedTab == button ? TabButtonC.ButtonState.Click : TabButtonC.ButtonState.Reset);
         }
     }
     /// <summary>
     /// Cleans the <see cref="tabButtons"/> list in case of null and other stuff.
     /// </summary>
-    public void CleanTabButtonsList()
-    {
+    public void CleanTabButtonsList() {
         tabButtons.RemoveAll((x) => x == null);
     }
 
@@ -609,10 +524,8 @@ public class TabSystem : UIBehaviour
     /// <param name="button">The button parameter. This can't be null.</param>
     /// <returns>The index of <paramref name="button"/> in this tabsystem. If this tabsystem does not have the given <paramref name="button"/> this returns -1.</returns>
     /// <exception cref="ArgumentNullException"/>
-    public int GetButtonIndex(TabButton button)
-    {
-        if (button == null)
-        {
+    public int GetButtonIndex(TabButtonC button) {
+        if (button == null) {
             throw new ArgumentNullException(nameof(button), "[TabSystem::GetButtonIndex] Given argument was null.");
         }
 
@@ -622,8 +535,7 @@ public class TabSystem : UIBehaviour
     /// <summary>
     /// Returns the currently selected buttons index.
     /// </summary>
-    public int GetSelectedButtonIndex()
-    {
+    public int GetSelectedButtonIndex() {
         return Mathf.Clamp(_SelectedTabIndex, 0, tabButtons.Count - 1);
     }
     /// <summary>
@@ -634,31 +546,25 @@ public class TabSystem : UIBehaviour
     /// Whether if the <see cref="OnTabButtonClicked"/> event should invoke. 
     /// This is set to <see langword="true"/> by default.
     /// </param>
-    public void SetSelectedButtonIndex(int btnSelect, bool silentSelect = false)
-    {
+    public void SetSelectedButtonIndex(int btnSelect, bool silentSelect = false) {
         _SelectedTabIndex = Mathf.Clamp(btnSelect, 0, tabButtons.Count - 1);
 #if UNITY_EDITOR
-        if (!Application.isPlaying)
-        {
+        if (!Application.isPlaying) {
             return;
         }
 #endif
-        TabButton ButtonToSelScript = tabButtons[_SelectedTabIndex];
+        TabButtonC ButtonToSelScript = tabButtons[_SelectedTabIndex];
 
-        if (ButtonToSelScript != null)
-        {
+        if (ButtonToSelScript != null) {
             SelectedTab = ButtonToSelScript;
-            ButtonToSelScript.SetButtonAppearance(TabButton.ButtonState.Click);
+            ButtonToSelScript.SetButtonAppearance(TabButtonC.ButtonState.Click);
 
-            if (!silentSelect)
-            {
+            if (!silentSelect) {
                 OnTabButtonClicked?.Invoke(_SelectedTabIndex);
             }
 
             UpdateButtonAppearances();
-        }
-        else
-        {
+        } else {
             Debug.LogError($"[TabSystem] The tab button to select is null. The index was {_SelectedTabIndex}.", this);
         }
     }
