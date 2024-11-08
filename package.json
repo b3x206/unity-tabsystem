@@ -1,5 +1,5 @@
 {
-    "name": "com.uts.tabsystem",
+    "name": "com.b3x.tabsystem",
     "version": "1.1.0",
     "displayName": "UGUI TabSystem",
     "description": "This addition can be used to easily create tabs (like browser tabs, etc.) on the unity's UGUI system.",
