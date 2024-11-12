@@ -11,6 +11,7 @@ using UnityEngine.UI;
 /// A tab button component, handles the pointer events and the color/graphic transitions.
 /// The parent <see cref="TabSystem"/> manages it's settings.
 /// </summary>
+[RequireComponent(typeof(RectTransform))]
 public class TabButtonC : MonoBehaviour, IPointerClickHandler, IPointerDownHandler, IPointerEnterHandler, IPointerExitHandler {
     /// <summary>
     /// Used with a tab button related transitioning event.

@@ -430,6 +430,7 @@ public class TabSystem : UIBehaviour {
             tabButton.transform.localScale = Vector3.one;
 
             tabButtonScript = tabButton.AddComponent<TabButtonC>();
+            tabButton.AddComponent<Image>();
 
             // -- Text
             GameObject tabText = new GameObject("Tab Text");
